@@ -9,6 +9,7 @@ import (
 	"github.com/ctreminiom/go-atlassian/v2/jira/agile"
 	"github.com/ctreminiom/go-atlassian/v2/pkg/infra/models"
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/sirupsen/logrus"
 
 	"mcp-atlassian-server/pkg/clients"
 	"mcp-atlassian-server/pkg/utils"
