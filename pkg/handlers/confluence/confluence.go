@@ -328,7 +328,7 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	}
 
 	// Build the URL
-	url := fmt.Sprintf("%s://%s/rest/api/content/", client.Site.Scheme, client.Site.Host)
+	url := fmt.Sprintf("%s://%s/rest/api/content", client.Site.Scheme, client.Site.Host)
 	reqHttp, err := client.NewRequest(ctx, "POST", url, "application/json", bytes.NewReader(payloadBytes))
 	if err != nil {
 		return mcp.NewToolResultError("Failed to create HTTP request: " + err.Error()), nil
