@@ -615,21 +615,23 @@ func AddWorklogHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	if started != "" {
 		payload.Started = started
 	}
-	options := &models.WorklogOptionsScheme{}
-	if originalEstimate != "" {
-		options.AdjustEstimate = "new"
-		options.NewEstimate = originalEstimate
+	var options *models.WorklogOptionsScheme
+	if originalEstimate != "" || remainingEstimate != "" {
+		options = &models.WorklogOptionsScheme{}
+		if originalEstimate != "" {
+			options.AdjustEstimate = "new"
+			options.NewEstimate = originalEstimate
+		}
+		if remainingEstimate != "" {
+			options.AdjustEstimate = "manual"
+			options.ReduceBy = remainingEstimate
+		}
 	}
-	if remainingEstimate != "" {
-		options.AdjustEstimate = "manual"
-		options.ReduceBy = remainingEstimate
-	}
-	result, resp, err := client.Issue.Worklog.Add(ctx, issueKey, payload, options)
+	_, resp, err := client.Issue.Worklog.Add(ctx, issueKey, payload, options)
 	if err != nil || resp == nil || (resp.StatusCode != 201 && resp.StatusCode != 200) {
-		return mcp.NewToolResultError("Failed to add worklog: " + err.Error()), nil
+		return mcp.NewToolResultError("Failed to add worklog: " + err.Error() + resp.Bytes.String()), nil
 	}
-	jsonBytes, _ := json.Marshal(result)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 func UpdateIssueHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
