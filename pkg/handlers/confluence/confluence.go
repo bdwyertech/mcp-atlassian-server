@@ -332,10 +332,10 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	var structure any
 	resp, err := client.Call(reqHttp, &structure)
 	if err != nil {
-		return mcp.NewToolResultError("Failed to add worklog: " + err.Error()), nil
+		return mcp.NewToolResultError("Failed to add comment: " + err.Error() + resp.Bytes.String()), nil
 	}
 	if resp.StatusCode != 201 && resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to add worklog: " + string(resp.Bytes.String())), nil
+		return mcp.NewToolResultError("Failed to add comment: " + string(resp.Bytes.String())), nil
 	}
 	return mcp.NewToolResultText(string(resp.Bytes.String())), nil
 }
