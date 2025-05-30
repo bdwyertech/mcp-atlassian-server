@@ -2,8 +2,6 @@ module mcp-atlassian-server
 
 go 1.23
 
-toolchain go1.24.3
-
 require (
 	github.com/JohannesKaufmann/html-to-markdown v1.6.0
 	github.com/ctreminiom/go-atlassian/v2 v2.4.0
