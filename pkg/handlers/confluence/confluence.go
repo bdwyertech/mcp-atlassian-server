@@ -321,7 +321,7 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	}
 	comment, resp, err := client.Content.Create(ctx, commentPayload)
 	if err != nil || resp == nil || (resp.StatusCode != 200 && resp.StatusCode != 201) {
-		return mcp.NewToolResultError("Failed to add comment: " + err.Error()), nil
+		return mcp.NewToolResultError("Failed to add comment: " + err.Error() + resp.Bytes.String()), nil
 	}
 	jsonBytes, _ := json.Marshal(comment)
 	return mcp.NewToolResultText(string(jsonBytes)), nil
