@@ -1,9 +1,11 @@
 package confluence
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
@@ -309,10 +311,7 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 		return mcp.NewToolResultError("Confluence client error: " + err.Error()), nil
 	}
 	commentPayload := &models.ContentScheme{
-		Type:      "comment",
-		Title:     "Comment",
-		Space:     &models.SpaceScheme{Key: "global"}, // Use global space for comments
-		Ancestors: []*models.ContentScheme{{ID: pageID}},
+		Type: "comment",
 		Body: &models.BodyScheme{
 			Storage: &models.BodyNodeScheme{
 				Value:          content,
@@ -320,11 +319,23 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 			},
 		},
 	}
-
-	comment, resp, err := client.Content.Create(ctx, commentPayload)
-	if err != nil || resp == nil || (resp.StatusCode != 200 && resp.StatusCode != 201) {
-		return mcp.NewToolResultError("Failed to add comment: " + err.Error() + resp.Bytes.String()), nil
+	payloadBytes, err := json.Marshal(commentPayload)
+	if err != nil {
+		return mcp.NewToolResultError("Failed to marshal comment payload: " + err.Error()), nil
 	}
-	jsonBytes, _ := json.Marshal(comment)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+
+	// Build the URL
+	url := fmt.Sprintf("%s://%s/rest/api/content/issue/%s/comment", client.Site.Scheme, client.Site.Host, pageID)
+	reqHttp, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(payloadBytes))
+	if err != nil {
+		return mcp.NewToolResultError("Failed to create HTTP request: " + err.Error()), nil
+	}
+	resp, err := client.Call(reqHttp, nil)
+	if err != nil {
+		return mcp.NewToolResultError("Failed to add worklog: " + err.Error()), nil
+	}
+	if resp.StatusCode != 201 && resp.StatusCode != 200 {
+		return mcp.NewToolResultError("Failed to add worklog: " + string(resp.Bytes.String())), nil
+	}
+	return mcp.NewToolResultText(string(resp.Bytes.String())), nil
 }
