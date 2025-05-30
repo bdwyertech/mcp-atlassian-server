@@ -72,7 +72,7 @@ jobs:
 
       - name: Run Trivy vulnerability scanner
         if: steps.check_image.outputs.exists == 'false'
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.30.0
         with:
           image-ref: ghcr.io/${{ github.repository_owner }}/mcp-atlassian-server:${{ steps.upstream_sha.outputs.short_sha }}
           format: 'sarif'
