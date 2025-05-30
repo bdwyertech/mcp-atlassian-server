@@ -309,8 +309,12 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	if err != nil {
 		return mcp.NewToolResultError("Confluence client error: " + err.Error()), nil
 	}
-	commentPayload := &models.ContentScheme{
+	commentPayload := &ConfluenceComment{
 		Type: "comment",
+		Container: &Container{
+			Type: "page",
+			ID:   pageID,
+		},
 		Body: &models.BodyScheme{
 			Storage: &models.BodyNodeScheme{
 				Value:          content,
@@ -324,7 +328,7 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	}
 
 	// Build the URL
-	url := fmt.Sprintf("%s://%s/rest/api/content/issue/%s/comment", client.Site.Scheme, client.Site.Host, pageID)
+	url := fmt.Sprintf("%s://%s/rest/api/content/", client.Site.Scheme, client.Site.Host)
 	reqHttp, err := client.NewRequest(ctx, "POST", url, "application/json", bytes.NewReader(payloadBytes))
 	if err != nil {
 		return mcp.NewToolResultError("Failed to create HTTP request: " + err.Error()), nil
@@ -338,4 +342,15 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 		return mcp.NewToolResultError("Failed to add comment: " + string(resp.Bytes.String())), nil
 	}
 	return mcp.NewToolResultText(string(resp.Bytes.String())), nil
+}
+
+type ConfluenceComment struct {
+	Type      string             `json:"type"` // should be "comment"
+	Container *Container         `json:"container"`
+	Body      *models.BodyScheme `json:"body"`
+}
+
+type Container struct {
+	Type string `json:"type"` // should be "page"
+	ID   string `json:"id"`   // page or blog post ID
 }
