@@ -1,8 +1,12 @@
 package jira
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
 
 	"strings"
 
@@ -606,32 +610,51 @@ func AddWorklogHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
-	payload := &models.WorklogRichTextPayloadScheme{
-		TimeSpent: timeSpent,
+
+	// Build the payload as Jira expects: comment as a string, not an object
+	payload := map[string]interface{}{
+		"timeSpent": timeSpent,
 	}
 	if comment != "" {
-		payload.Comment = &models.CommentPayloadSchemeV2{Body: comment}
+		payload["comment"] = comment
 	}
 	if started != "" {
-		payload.Started = started
+		payload["started"] = started
 	}
-	var options *models.WorklogOptionsScheme
-	if originalEstimate != "" || remainingEstimate != "" {
-		options = &models.WorklogOptionsScheme{}
-		if originalEstimate != "" {
-			options.AdjustEstimate = "new"
-			options.NewEstimate = originalEstimate
-		}
-		if remainingEstimate != "" {
-			options.AdjustEstimate = "manual"
-			options.ReduceBy = remainingEstimate
-		}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return mcp.NewToolResultError("Failed to marshal worklog payload: " + err.Error()), nil
 	}
-	_, resp, err := client.Issue.Worklog.Add(ctx, issueKey, payload, options)
-	if err != nil || resp == nil || (resp.StatusCode != 201 && resp.StatusCode != 200) {
-		return mcp.NewToolResultError("Failed to add worklog: " + err.Error() + resp.Bytes.String()), nil
+
+	// Build the URL
+	url := fmt.Sprintf("%s://%s/rest/api/2/issue/%s/worklog", client.Site.Scheme, client.Site.Host, issueKey)
+
+	// Add estimate adjustment if needed
+	params := ""
+	if originalEstimate != "" {
+		params = fmt.Sprintf("?adjustEstimate=new&newEstimate=%s", originalEstimate)
+	} else if remainingEstimate != "" {
+		params = fmt.Sprintf("?adjustEstimate=manual&reduceBy=%s", remainingEstimate)
 	}
-	return mcp.NewToolResultText(resp.Bytes.String()), nil
+	url += params
+
+	reqHttp, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(payloadBytes))
+	if err != nil {
+		return mcp.NewToolResultError("Failed to create HTTP request: " + err.Error()), nil
+	}
+	reqHttp.Header.Set("Content-Type", "application/json")
+	reqHttp.Header.Set("Authorization", "Bearer "+client.Auth.GetBearerToken())
+	resp, err := client.HTTP.Do(reqHttp)
+	if err != nil {
+		return mcp.NewToolResultError("Failed to add worklog: " + err.Error()), nil
+	}
+	defer resp.Body.Close()
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != 201 && resp.StatusCode != 200 {
+		return mcp.NewToolResultError("Failed to add worklog: " + string(respBody)), nil
+	}
+	return mcp.NewToolResultText(string(respBody)), nil
 }
 
 func UpdateIssueHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
