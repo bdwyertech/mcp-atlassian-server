@@ -51,7 +51,6 @@ type ContentScheme struct {
 	Extensions *ContentExtensionScheme `json:"extensions,omitempty"`
 	Ancestors  []*ContentScheme        `json:"ancestors,omitempty"`
 	History    *ContentHistoryScheme   `json:"history,omitempty"`
-	Container  string                  `json:"container,omitempty"`
 }
 
 // ContentExtensionScheme represents an extension of content.

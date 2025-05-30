@@ -311,14 +311,14 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	commentPayload := &models.ContentScheme{
 		Type:      "comment",
 		Title:     "Comment",
+		Space:     &models.SpaceScheme{Key: "global"}, // Use global space for comments
 		Ancestors: []*models.ContentScheme{{ID: pageID}},
 		Body: &models.BodyScheme{
 			Storage: &models.BodyNodeScheme{
 				Value:          content,
-				Representation: "wiki",
+				Representation: "storage",
 			},
 		},
-		Container: fmt.Sprintf("{\"id\": %s, \"type\": \"global\"}", pageID),
 	}
 
 	comment, resp, err := client.Content.Create(ctx, commentPayload)
