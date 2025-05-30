@@ -5,7 +5,7 @@ go 1.23
 require (
 	github.com/JohannesKaufmann/html-to-markdown v1.6.0
 	github.com/ctreminiom/go-atlassian/v2 v2.4.0
-	github.com/mark3labs/mcp-go v0.30.1
+	github.com/mark3labs/mcp-go v0.31.0
 	github.com/sirupsen/logrus v1.9.3
 )
 
