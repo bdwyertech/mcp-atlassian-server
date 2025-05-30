@@ -318,7 +318,9 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 				Representation: "wiki",
 			},
 		},
+		Container: fmt.Sprintf("{\"id\": %s, \"type\": \"global\"}", pageID),
 	}
+
 	comment, resp, err := client.Content.Create(ctx, commentPayload)
 	if err != nil || resp == nil || (resp.StatusCode != 200 && resp.StatusCode != 201) {
 		return mcp.NewToolResultError("Failed to add comment: " + err.Error() + resp.Bytes.String()), nil
