@@ -330,7 +330,8 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	if err != nil {
 		return mcp.NewToolResultError("Failed to create HTTP request: " + err.Error()), nil
 	}
-	resp, err := client.Call(reqHttp, nil)
+	var structure any
+	resp, err := client.Call(reqHttp, &structure)
 	if err != nil {
 		return mcp.NewToolResultError("Failed to add worklog: " + err.Error()), nil
 	}
