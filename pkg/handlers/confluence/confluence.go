@@ -314,6 +314,7 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 		Container: &Container{
 			Type: "page",
 			ID:   pageID,
+			Status: "current",
 		},
 		Body: &models.BodyScheme{
 			Storage: &models.BodyNodeScheme{
@@ -351,6 +352,7 @@ type ConfluenceComment struct {
 }
 
 type Container struct {
-	Type string `json:"type"` // should be "page"
-	ID   string `json:"id"`   // page or blog post ID
+	Type   string `json:"type"`             // should be "page"
+	ID     string `json:"id"`               // page or blog post ID
+	Status string `json:"status,omitempty"` // optional, e.g., "current"
 }
