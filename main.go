@@ -850,12 +850,11 @@ func jiraGetProjectIssuesHandler(ctx context.Context, req mcp.CallToolRequest) (
 	}
 
 	jql := "project = '" + projectKey + "'"
-	issues, resp, err := client.Issue.Search.Post(ctx, jql, nil, nil, startAt, limit, "")
+	_, resp, err := client.Issue.Search.Post(ctx, jql, nil, nil, startAt, limit, "")
 	if err != nil || resp == nil || resp.StatusCode != 200 {
 		return mcp.NewToolResultError("Failed to get project issues: " + err.Error()), nil
 	}
-	jsonBytes, _ := json.Marshal(issues)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 // --- Jira Tool Handler Implementations ---
