@@ -9,6 +9,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
 	"mcp-atlassian-server/pkg/clients"
@@ -30,6 +31,42 @@ func main() {
 		server.WithToolCapabilities(true),
 		server.WithInstructions("Provides tools for interacting with Atlassian Jira & Confluence."),
 		server.WithHooks(hooks),
+		server.WithRecovery(),
+		server.WithLogging(),
+		server.WithToolFilter(func(ctx context.Context, tools []mcp.Tool) []mcp.Tool {
+			enabledTools := []mcp.Tool{}
+			enabledEnv := os.Getenv("ENABLED_TOOLS")
+			disabledEnv := os.Getenv("DISABLED_TOOLS")
+			if enabledEnv != "" {
+				enabledSet := map[string]struct{}{}
+				for _, name := range strings.Split(enabledEnv, ",") {
+					enabledSet[strings.TrimSpace(name)] = struct{}{}
+				}
+				for _, t := range tools {
+					if _, ok := enabledSet[t.Name]; ok {
+						enabledTools = append(enabledTools, t)
+					}
+				}
+				return enabledTools
+			} else if disabledEnv != "" {
+				disabledTools := strings.Split(disabledEnv, ",")
+				for _, t := range tools {
+					enabled := true
+					for _, disabled := range disabledTools {
+						if t.Name == strings.TrimSpace(disabled) {
+							enabled = false
+							break
+						}
+					}
+					if enabled {
+						enabledTools = append(enabledTools, t)
+					}
+				}
+				return enabledTools
+			}
+			// If neither is set, return all tools
+			return tools
+		}),
 	)
 
 	switch strings.ToUpper(os.Getenv("MCP_MODE")) {
@@ -42,11 +79,6 @@ func main() {
 		jira.AddTools(s)
 	default:
 		log.Fatal("Unknown MCP_MODE value")
-	}
-
-	if disabled := os.Getenv("DISABLED_TOOLS"); disabled != "" {
-		disabledTools := strings.Split(disabled, ",")
-		s.DeleteTools(disabledTools...)
 	}
 
 	if os.Getenv("MCP_HTTP") != "" {
