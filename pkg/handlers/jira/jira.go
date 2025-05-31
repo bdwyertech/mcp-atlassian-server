@@ -594,21 +594,30 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 
 // Handler for jira_add_worklog
 func AddWorklogHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	issueKey := req.GetString("issue_key", "")
-	timeSpent := req.GetString("time_spent", "")
+	issueKey, err := req.RequireString("issue_key")
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+	timeSpent, err := req.RequireString("time_spent")
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
 	comment := req.GetString("comment", "")
 	started := req.GetString("started", "")
+	if started != "" {
+		timeSpent, err = utils.ParseJiraTime(started)
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("error parsing started:", err), nil
+		}
+	}
 	originalEstimate := req.GetString("original_estimate", "")
 	remainingEstimate := req.GetString("remaining_estimate", "")
-	if issueKey == "" || timeSpent == "" {
-		return mcp.NewToolResultError("Missing required parameters: issue_key and time_spent are required"), nil
-	}
+
 	client, err := clients.GetJiraClient()
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
 
-	// Build the payload as Jira expects: comment as a string, not an object
 	payload := map[string]any{
 		"timeSpent": timeSpent,
 	}
@@ -638,7 +647,7 @@ func AddWorklogHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	var structure any
 	resp, err := client.Call(reqHttp, &structure)
 	if err != nil {
-		return mcp.NewToolResultError("Failed to add worklog: " + err.Error()), nil
+		return mcp.NewToolResultError("Failed to add worklog: " + err.Error() + resp.Bytes.String()), nil
 	}
 	if resp.StatusCode != 201 && resp.StatusCode != 200 {
 		return mcp.NewToolResultError("Failed to add worklog: " + resp.Bytes.String()), nil
