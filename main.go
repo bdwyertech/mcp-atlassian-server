@@ -28,7 +28,7 @@ func main() {
 		"Atlassian MCP - Provides tools for interacting with Atlassian Jira & Confluence",
 		"0.1.0",
 		server.WithToolCapabilities(true),
-		server.WithInstructions("Provides tools for interacting with Atlassian Jira."),
+		server.WithInstructions("Provides tools for interacting with Atlassian Jira & Confluence."),
 		server.WithHooks(hooks),
 	)
 
@@ -48,6 +48,7 @@ func main() {
 	if os.Getenv("MCP_HTTP") != "" {
 		svr := server.NewStreamableHTTPServer(s, server.WithHTTPContextFunc(func(ctx context.Context, r *http.Request) context.Context {
 			for key, value := range r.Header {
+				fmt.Println(key)
 				if key == "JIRA_PERSONAL_TOKEN" {
 					fmt.Println("JIRA_PERSONAL_TOKEN")
 					ctx = context.WithValue(ctx, clients.JiraPersonalTokenKey, value)
@@ -65,7 +66,17 @@ func main() {
 		}
 	} else if os.Getenv("MCP_SSE") != "" {
 		svr := server.NewSSEServer(s, server.WithSSEContextFunc(func(ctx context.Context, r *http.Request) context.Context {
-			log.Error(r.Header)
+			for key, value := range r.Header {
+				fmt.Println(key)
+				if key == "JIRA_PERSONAL_TOKEN" {
+					fmt.Println("JIRA_PERSONAL_TOKEN")
+					ctx = context.WithValue(ctx, clients.JiraPersonalTokenKey, value)
+				}
+				if key == "CONFLUENCE_PERSONAL_TOKEN" {
+					fmt.Println("CONFLUENCE_PERSONAL_TOKEN")
+					ctx = context.WithValue(ctx, clients.ConfluencePersonalTokenKey, value)
+				}
+			}
 			return ctx
 		}))
 		log.Info("Listening on :8080/mcp")
