@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -30,9 +31,12 @@ func (w *JiraRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 }
 
 // GetJiraClient returns a new Jira client using environment variables.
-func GetJiraClient() (*jira.Client, error) {
+func GetJiraClient(ctx context.Context) (*jira.Client, error) {
 	baseURL := os.Getenv("JIRA_URL")
 	apiToken := os.Getenv("JIRA_PERSONAL_TOKEN")
+	if token := ctx.Value(JiraPersonalTokenKey); token != nil {
+		apiToken = token.(string)
+	}
 	if baseURL == "" || apiToken == "" {
 		return nil, fmt.Errorf("missing Jira credentials in environment variables")
 	}
@@ -49,9 +53,12 @@ func GetJiraClient() (*jira.Client, error) {
 }
 
 // GetAgileClient returns a new Jira client using environment variables.
-func GetAgileClient() (*agile.Client, error) {
+func GetAgileClient(ctx context.Context) (*agile.Client, error) {
 	baseURL := os.Getenv("JIRA_URL")
 	apiToken := os.Getenv("JIRA_PERSONAL_TOKEN")
+	if token := ctx.Value(JiraPersonalTokenKey); token != nil {
+		apiToken = token.(string)
+	}
 	if baseURL == "" || apiToken == "" {
 		return nil, fmt.Errorf("missing Jira credentials in environment variables")
 	}

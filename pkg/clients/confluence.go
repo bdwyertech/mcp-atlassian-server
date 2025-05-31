@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -21,9 +22,12 @@ func (w *ConfluenceRoundTripper) RoundTrip(req *http.Request) (*http.Response, e
 }
 
 // GetConfluenceClient returns a new Confluence client using environment variables.
-func GetConfluenceClient() (*confluence.Client, error) {
+func GetConfluenceClient(ctx context.Context) (*confluence.Client, error) {
 	baseURL := os.Getenv("CONFLUENCE_URL")
 	apiToken := os.Getenv("CONFLUENCE_PERSONAL_TOKEN")
+	if token := ctx.Value(ConfluencePersonalTokenKey); token != nil {
+		apiToken = token.(string)
+	}
 	if baseURL == "" || apiToken == "" {
 		return nil, fmt.Errorf("missing Confluence credentials in environment variables")
 	}

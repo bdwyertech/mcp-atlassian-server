@@ -16,7 +16,7 @@ import (
 )
 
 func PingHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	client, err := clients.GetJiraClient()
+	client, err := clients.GetJiraClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -35,7 +35,7 @@ func PingHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRes
 // Handler for jira_get_user_profile
 func GetUserProfileHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	userIdentifier := req.GetString("user_identifier", "")
-	client, err := clients.GetJiraClient()
+	client, err := clients.GetJiraClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -56,7 +56,7 @@ func GetIssueHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	fields := req.GetString("fields", "")
 	expand := req.GetString("expand", "")
 	commentLimit := req.GetInt("comment_limit", 10)
-	client, err := clients.GetJiraClient()
+	client, err := clients.GetJiraClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -92,7 +92,7 @@ func SearchHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 	projectsFilter := req.GetString("projects_filter", "")
 	expand := req.GetString("expand", "")
 	properties := req.GetString("properties", "")
-	client, err := clients.GetJiraClient()
+	client, err := clients.GetJiraClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -137,7 +137,7 @@ func SearchFieldsHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	startAt := req.GetInt("start_at", 0)
 	refresh := req.GetBool("refresh", false)
 	_ = refresh // Not used in this handler
-	client, err := clients.GetJiraClient()
+	client, err := clients.GetJiraClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -158,7 +158,7 @@ func GetProjectIssuesHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	projectKey := req.GetString("project_key", "")
 	limit := req.GetInt("limit", 10)
 	startAt := req.GetInt("start_at", 0)
-	client, err := clients.GetJiraClient()
+	client, err := clients.GetJiraClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -182,7 +182,7 @@ func GetTransitionsHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 	if issueKey == "" {
 		return mcp.NewToolResultError("Missing required parameter: issue_key"), nil
 	}
-	client, err := clients.GetJiraClient()
+	client, err := clients.GetJiraClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -202,7 +202,7 @@ func GetWorklogHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	if issueKey == "" {
 		return mcp.NewToolResultError("Missing required parameter: issue_key"), nil
 	}
-	client, err := clients.GetJiraClient()
+	client, err := clients.GetJiraClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -227,7 +227,7 @@ func GetAgileBoardsHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 	boardType := req.GetString("board_type", "")
 	startAt := req.GetInt("start_at", 0)
 	limit := req.GetInt("limit", 10)
-	agileClient, err := clients.GetAgileClient()
+	agileClient, err := clients.GetAgileClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -257,7 +257,7 @@ func GetBoardIssuesHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 	startAt := req.GetInt("start_at", 0)
 	limit := req.GetInt("limit", 10)
 	expand := req.GetString("expand", "version")
-	agileClient, err := clients.GetAgileClient()
+	agileClient, err := clients.GetAgileClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Failed to create agile client: " + err.Error()), nil
 	}
@@ -291,7 +291,7 @@ func GetSprintsFromBoardHandler(ctx context.Context, req mcp.CallToolRequest) (*
 	state := req.GetString("state", "")
 	startAt := req.GetInt("start_at", 0)
 	limit := req.GetInt("limit", 10)
-	agileClient, err := clients.GetAgileClient()
+	agileClient, err := clients.GetAgileClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Failed to create agile client: " + err.Error()), nil
 	}
@@ -314,7 +314,7 @@ func GetSprintIssuesHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	fields := req.GetString("fields", "")
 	startAt := req.GetInt("start_at", 0)
 	limit := req.GetInt("limit", 10)
-	agileClient, err := clients.GetAgileClient()
+	agileClient, err := clients.GetAgileClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -342,7 +342,7 @@ func DownloadAttachmentsHandler(ctx context.Context, req mcp.CallToolRequest) (*
 }
 
 func GetLinkTypesHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	client, err := clients.GetJiraClient()
+	client, err := clients.GetJiraClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -368,7 +368,7 @@ func CreateIssueHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	if projectKey == "" || summary == "" || issueType == "" {
 		return mcp.NewToolResultError("Missing required parameters: project_key, summary, issue_type are required"), nil
 	}
-	client, err := clients.GetJiraClient()
+	client, err := clients.GetJiraClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -428,7 +428,7 @@ func LinkToEpicHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	if issueKey == "" || epicKey == "" {
 		return mcp.NewToolResultError("Missing required parameters: issue_key and epic_key are required"), nil
 	}
-	client, err := clients.GetAgileClient()
+	client, err := clients.GetAgileClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -452,7 +452,7 @@ func CreateIssueLinkHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	if linkType == "" || inwardKey == "" || outwardKey == "" {
 		return mcp.NewToolResultError("Missing required parameters: link_type, inward_issue_key, outward_issue_key are required"), nil
 	}
-	client, err := clients.GetJiraClient()
+	client, err := clients.GetJiraClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -483,7 +483,7 @@ func RemoveIssueLinkHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	if linkID == "" {
 		return mcp.NewToolResultError("Missing required parameter: link_id"), nil
 	}
-	client, err := clients.GetJiraClient()
+	client, err := clients.GetJiraClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -512,7 +512,7 @@ func TransitionIssueHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 			return mcp.NewToolResultError("Invalid fields JSON: " + err.Error()), nil
 		}
 	}
-	client, err := clients.GetJiraClient()
+	client, err := clients.GetJiraClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -561,7 +561,7 @@ func CreateSprintHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	if sprintName == "" {
 		return mcp.NewToolResultError("Missing required parameter: sprint_name"), nil
 	}
-	agileClient, err := clients.GetAgileClient()
+	agileClient, err := clients.GetAgileClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira agile client error: " + err.Error()), nil
 	}
@@ -596,7 +596,7 @@ func UpdateSprintHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	startDate := req.GetString("start_date", "")
 	endDate := req.GetString("end_date", "")
 	goal := req.GetString("goal", "")
-	agileClient, err := clients.GetAgileClient()
+	agileClient, err := clients.GetAgileClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira agile client error: " + err.Error()), nil
 	}
@@ -634,7 +634,7 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	if issueKey == "" || comment == "" {
 		return mcp.NewToolResultError("Missing required parameters: issue_key and comment are required"), nil
 	}
-	client, err := clients.GetJiraClient()
+	client, err := clients.GetJiraClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -673,7 +673,7 @@ func AddWorklogHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	originalEstimate := req.GetString("original_estimate", "")
 	remainingEstimate := req.GetString("remaining_estimate", "")
 
-	client, err := clients.GetJiraClient()
+	client, err := clients.GetJiraClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -730,7 +730,7 @@ func UpdateIssueHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	if issueKey == "" || fieldsStr == "" {
 		return mcp.NewToolResultError("Missing required parameters: issue_key and fields are required"), nil
 	}
-	client, err := clients.GetJiraClient()
+	client, err := clients.GetJiraClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
@@ -769,7 +769,7 @@ func DeleteIssueHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	if issueKey == "" {
 		return mcp.NewToolResultError("Missing required parameter: issue_key"), nil
 	}
-	client, err := clients.GetJiraClient()
+	client, err := clients.GetJiraClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}

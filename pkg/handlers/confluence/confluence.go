@@ -14,7 +14,7 @@ import (
 )
 
 func PingHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	client, err := clients.GetConfluenceClient()
+	client, err := clients.GetConfluenceClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Confluence client error: " + err.Error()), nil
 	}
@@ -45,7 +45,7 @@ func SearchHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 	}
 	spacesFilter := req.GetString("spaces_filter", "")
 
-	client, err := clients.GetConfluenceClient()
+	client, err := clients.GetConfluenceClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Confluence client error: " + err.Error()), nil
 	}
@@ -86,7 +86,7 @@ func GetPageHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 	spaceKey := req.GetString("space_key", "")
 	includeMetadata := req.GetBool("include_metadata", true)
 	convertToMarkdown := req.GetBool("convert_to_markdown", true)
-	client, err := clients.GetConfluenceClient()
+	client, err := clients.GetConfluenceClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Confluence client error: " + err.Error()), nil
 	}
@@ -147,7 +147,7 @@ func GetPageChildrenHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	limit := req.GetInt("limit", 25)
 	start := req.GetInt("start", 0)
 
-	client, err := clients.GetConfluenceClient()
+	client, err := clients.GetConfluenceClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Confluence client error: " + err.Error()), nil
 	}
@@ -187,7 +187,7 @@ func GetPageChildrenHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 // Handler for confluence_get_comments
 func GetCommentsHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	pageID := req.GetString("page_id", "")
-	client, err := clients.GetConfluenceClient()
+	client, err := clients.GetConfluenceClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Confluence client error: " + err.Error()), nil
 	}
@@ -206,7 +206,7 @@ func GetCommentsHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 // Handler for confluence_get_labels
 func GetLabelsHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	pageID := req.GetString("page_id", "")
-	client, err := clients.GetConfluenceClient()
+	client, err := clients.GetConfluenceClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Confluence client error: " + err.Error()), nil
 	}
@@ -225,7 +225,7 @@ func GetLabelsHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 func AddLabelHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	pageID := req.GetString("page_id", "")
 	name := req.GetString("name", "")
-	client, err := clients.GetConfluenceClient()
+	client, err := clients.GetConfluenceClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Confluence client error: " + err.Error()), nil
 	}
@@ -247,7 +247,7 @@ func CreatePageHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	title := req.GetString("title", "")
 	content := req.GetString("content", "")
 	parentID := req.GetString("parent_id", "")
-	client, err := clients.GetConfluenceClient()
+	client, err := clients.GetConfluenceClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Confluence client error: " + err.Error()), nil
 	}
@@ -284,7 +284,7 @@ func UpdatePageHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	isMinorEdit := req.GetBool("is_minor_edit", false)
 	versionComment := req.GetString("version_comment", "")
 	parentID := req.GetString("parent_id", "")
-	client, err := clients.GetConfluenceClient()
+	client, err := clients.GetConfluenceClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Confluence client error: " + err.Error()), nil
 	}
@@ -333,7 +333,7 @@ func UpdatePageHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 // Handler for confluence_delete_page
 func DeletePageHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	pageID := req.GetString("page_id", "")
-	client, err := clients.GetConfluenceClient()
+	client, err := clients.GetConfluenceClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Confluence client error: " + err.Error()), nil
 	}
@@ -352,7 +352,7 @@ func DeletePageHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	pageID := req.GetString("page_id", "")
 	content := req.GetString("content", "")
-	client, err := clients.GetConfluenceClient()
+	client, err := clients.GetConfluenceClient(ctx)
 	if err != nil {
 		return mcp.NewToolResultError("Confluence client error: " + err.Error()), nil
 	}
