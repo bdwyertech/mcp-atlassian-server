@@ -44,35 +44,14 @@ func main() {
 		log.Fatal("Unknown MCP_MODE value")
 	}
 
-	// Choose serving mode: SSE or stdio
 	if os.Getenv("MCP_HTTP") != "" {
-		svr := server.NewStreamableHTTPServer(s, server.WithHTTPContextFunc(func(ctx context.Context, r *http.Request) context.Context {
-			for key, value := range r.Header {
-				if key == "JIRA_PERSONAL_TOKEN" {
-					ctx = context.WithValue(ctx, clients.JiraPersonalTokenKey, value)
-				}
-				if key == "CONFLUENCE_PERSONAL_TOKEN" {
-					ctx = context.WithValue(ctx, clients.ConfluencePersonalTokenKey, value)
-				}
-			}
-			return ctx
-		}))
+		svr := server.NewStreamableHTTPServer(s, server.WithHTTPContextFunc(svrCtxFunc))
 		log.Info("Listening on :8080/mcp")
 		if err := svr.Start(":8080"); err != nil {
 			log.Fatal(err)
 		}
 	} else if os.Getenv("MCP_SSE") != "" {
-		svr := server.NewSSEServer(s, server.WithSSEContextFunc(func(ctx context.Context, r *http.Request) context.Context {
-			for key, value := range r.Header {
-				if key == "JIRA_PERSONAL_TOKEN" {
-					ctx = context.WithValue(ctx, clients.JiraPersonalTokenKey, value)
-				}
-				if key == "CONFLUENCE_PERSONAL_TOKEN" {
-					ctx = context.WithValue(ctx, clients.ConfluencePersonalTokenKey, value)
-				}
-			}
-			return ctx
-		}))
+		svr := server.NewSSEServer(s, server.WithSSEContextFunc(svrCtxFunc))
 		log.Info("Listening on :8080/mcp")
 		if err := svr.Start(":8080"); err != nil {
 			log.Fatal(err)
@@ -82,4 +61,16 @@ func main() {
 			fmt.Printf("Server error: %v\n", err)
 		}
 	}
+}
+
+func svrCtxFunc(ctx context.Context, r *http.Request) context.Context {
+	for key, value := range r.Header {
+		if key == "JIRA_PERSONAL_TOKEN" {
+			ctx = context.WithValue(ctx, clients.JiraPersonalTokenKey, value)
+		}
+		if key == "CONFLUENCE_PERSONAL_TOKEN" {
+			ctx = context.WithValue(ctx, clients.ConfluencePersonalTokenKey, value)
+		}
+	}
+	return ctx
 }
