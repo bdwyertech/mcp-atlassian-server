@@ -605,7 +605,7 @@ func AddWorklogHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	comment := req.GetString("comment", "")
 	started := req.GetString("started", "")
 	if started != "" {
-		timeSpent, err = utils.ParseJiraTime(started)
+		started, err = utils.ParseJiraTime(started)
 		if err != nil {
 			return mcp.NewToolResultErrorFromErr("error parsing started:", err), nil
 		}
