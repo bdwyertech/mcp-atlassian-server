@@ -1,12 +1,9 @@
 package jira
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 
 	"strings"
 
@@ -612,7 +609,7 @@ func AddWorklogHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	}
 
 	// Build the payload as Jira expects: comment as a string, not an object
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"timeSpent": timeSpent,
 	}
 	if comment != "" {
@@ -620,11 +617,6 @@ func AddWorklogHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	}
 	if started != "" {
 		payload["started"] = started
-	}
-
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		return mcp.NewToolResultError("Failed to marshal worklog payload: " + err.Error()), nil
 	}
 
 	// Build the URL
@@ -639,22 +631,19 @@ func AddWorklogHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	}
 	url += params
 
-	reqHttp, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(payloadBytes))
+	reqHttp, err := client.NewRequest(ctx, "POST", url, "application/json", payload)
 	if err != nil {
 		return mcp.NewToolResultError("Failed to create HTTP request: " + err.Error()), nil
 	}
-	reqHttp.Header.Set("Content-Type", "application/json")
-	reqHttp.Header.Set("Authorization", "Bearer "+client.Auth.GetBearerToken())
-	resp, err := client.HTTP.Do(reqHttp)
+	var structure any
+	resp, err := client.Call(reqHttp, &structure)
 	if err != nil {
 		return mcp.NewToolResultError("Failed to add worklog: " + err.Error()), nil
 	}
-	defer resp.Body.Close()
-	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != 201 && resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to add worklog: " + string(respBody)), nil
+		return mcp.NewToolResultError("Failed to add worklog: " + resp.Bytes.String()), nil
 	}
-	return mcp.NewToolResultText(string(respBody)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 func UpdateIssueHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
