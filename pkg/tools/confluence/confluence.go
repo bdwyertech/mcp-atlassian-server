@@ -171,7 +171,7 @@ func AddTools(s *server.MCPServer) {
 			mcp.Required(),
 		),
 		mcp.WithString("content",
-			mcp.Description("The comment content in Markdown format"),
+			mcp.Description("The comment content in HTML (Confluence) format"),
 			mcp.Required(),
 		),
 	), confluence.AddCommentHandler)
