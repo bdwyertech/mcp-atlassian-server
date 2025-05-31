@@ -7,7 +7,6 @@ import (
 
 	"strings"
 
-	"github.com/ctreminiom/go-atlassian/v2/jira/agile"
 	"github.com/ctreminiom/go-atlassian/v2/pkg/infra/models"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/sirupsen/logrus"
@@ -23,8 +22,12 @@ func PingHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRes
 	}
 	_, resp, err := client.MySelf.Details(ctx, []string{})
 	if err != nil || resp == nil || resp.StatusCode != 200 {
+		errMsg := "Jira ping failed:" + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
 		logrus.Error(err)
-		return mcp.NewToolResultError("Jira ping failed:" + err.Error()), nil
+		return mcp.NewToolResultError(errMsg), nil
 	}
 	return mcp.NewToolResultText("Jira OK"), nil
 }
@@ -36,12 +39,15 @@ func GetUserProfileHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
-	user, resp, err := client.User.Get(ctx, userIdentifier, nil)
+	_, resp, err := client.User.Get(ctx, userIdentifier, nil)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to get user profile: " + err.Error()), nil
+		errMsg := "Failed to get user profile: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(user)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 // Handler for jira_get_issue
@@ -63,7 +69,11 @@ func GetIssueHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	}
 	issue, resp, err := client.Issue.Get(ctx, issueKey, fieldSlice, expandSlice)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to get issue: " + err.Error()), nil
+		errMsg := "Failed to get issue: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
 	// If comments are present and commentLimit is set, trim the comments array
 	if issue.Fields != nil && issue.Fields.Comment != nil && len(issue.Fields.Comment.Comments) > commentLimit && commentLimit > 0 {
@@ -109,12 +119,15 @@ func SearchHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 			}
 		}
 	}
-	issues, resp, err := client.Issue.Search.Post(ctx, jql, fieldSlice, expandSlice, startAt, limit, properties)
+	_, resp, err := client.Issue.Search.Post(ctx, jql, fieldSlice, expandSlice, startAt, limit, properties)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to search issues: " + err.Error()), nil
+		errMsg := "Failed to search issues: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(issues)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 // Handler for jira_search_fields
@@ -129,12 +142,15 @@ func SearchFieldsHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
 	options := &models.FieldSearchOptionsScheme{Query: keyword}
-	fieldsPage, resp, err := client.Issue.Field.Search(ctx, options, startAt, limit)
+	_, resp, err := client.Issue.Field.Search(ctx, options, startAt, limit)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to search fields: " + err.Error()), nil
+		errMsg := "Failed to search fields: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(fieldsPage.Values)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 // Handler for jira_get_project_issues
@@ -150,7 +166,11 @@ func GetProjectIssuesHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	jql := "project = '" + projectKey + "'"
 	_, resp, err := client.Issue.Search.Post(ctx, jql, nil, nil, startAt, limit, "")
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to get project issues: " + err.Error()), nil
+		errMsg := "Failed to get project issues: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
 	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
@@ -166,12 +186,15 @@ func GetTransitionsHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
-	transitions, resp, err := client.Issue.Transitions(ctx, issueKey)
+	_, resp, err := client.Issue.Transitions(ctx, issueKey)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to get transitions: " + err.Error()), nil
+		errMsg := "Failed to get transitions: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(transitions)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 func GetWorklogHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -187,12 +210,15 @@ func GetWorklogHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	maxResults := 100
 	after := 0
 	var expand []string
-	worklogs, resp, err := client.Issue.Worklog.Issue(ctx, issueKey, startAt, maxResults, after, expand)
+	_, resp, err := client.Issue.Worklog.Issue(ctx, issueKey, startAt, maxResults, after, expand)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to get worklogs: " + err.Error()), nil
+		errMsg := "Failed to get worklogs: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(worklogs)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 func GetAgileBoardsHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -210,12 +236,15 @@ func GetAgileBoardsHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 		BoardType:      boardType,
 		ProjectKeyOrID: projectKey,
 	}
-	boards, resp, err := agileClient.Board.Gets(ctx, opts, startAt, limit)
+	_, resp, err := agileClient.Board.Gets(ctx, opts, startAt, limit)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to get agile boards: " + err.Error()), nil
+		errMsg := "Failed to get agile boards: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(boards)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 func GetBoardIssuesHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -228,15 +257,10 @@ func GetBoardIssuesHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 	startAt := req.GetInt("start_at", 0)
 	limit := req.GetInt("limit", 10)
 	expand := req.GetString("expand", "version")
-	jiraClient, err := clients.GetJiraClient()
-	if err != nil {
-		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
-	}
-	agileClient, err := agile.New(jiraClient.HTTP, jiraClient.Site.Host)
+	agileClient, err := clients.GetAgileClient()
 	if err != nil {
 		return mcp.NewToolResultError("Failed to create agile client: " + err.Error()), nil
 	}
-	agileClient.Auth = jiraClient.Auth
 	var fieldSlice, expandSlice []string
 	if fields != "" {
 		fieldSlice = utils.SplitAndTrim(fields)
@@ -244,16 +268,19 @@ func GetBoardIssuesHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 	if expand != "" {
 		expandSlice = utils.SplitAndTrim(expand)
 	}
-	issues, resp, err := agileClient.Board.Issues(ctx, boardID, &models.IssueOptionScheme{
+	_, resp, err := agileClient.Board.Issues(ctx, boardID, &models.IssueOptionScheme{
 		JQL:    jql,
 		Fields: fieldSlice,
 		Expand: expandSlice,
 	}, startAt, limit)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to get board issues: " + err.Error()), nil
+		errMsg := "Failed to get board issues: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(issues)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 func GetSprintsFromBoardHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -264,21 +291,19 @@ func GetSprintsFromBoardHandler(ctx context.Context, req mcp.CallToolRequest) (*
 	state := req.GetString("state", "")
 	startAt := req.GetInt("start_at", 0)
 	limit := req.GetInt("limit", 10)
-	jiraClient, err := clients.GetJiraClient()
-	if err != nil {
-		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
-	}
-	agileClient, err := agile.New(jiraClient.HTTP, jiraClient.Site.Host)
+	agileClient, err := clients.GetAgileClient()
 	if err != nil {
 		return mcp.NewToolResultError("Failed to create agile client: " + err.Error()), nil
 	}
-	agileClient.Auth = jiraClient.Auth
-	sprints, resp, err := agileClient.Board.Sprints(ctx, boardID, startAt, limit, []string{state})
+	_, resp, err := agileClient.Board.Sprints(ctx, boardID, startAt, limit, []string{state})
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to get sprints from board: " + err.Error()), nil
+		errMsg := "Failed to get sprints from board: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(sprints)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 func GetSprintIssuesHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -297,14 +322,18 @@ func GetSprintIssuesHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	if fields != "" {
 		fieldSlice = utils.SplitAndTrim(fields)
 	}
-	issues, resp, err := agileClient.Sprint.Issues(ctx, sprintID, &models.IssueOptionScheme{
+	_, resp, err := agileClient.Sprint.Issues(ctx, sprintID, &models.IssueOptionScheme{
 		Fields: fieldSlice,
 	}, startAt, limit)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to get sprint issues: " + err.Error()), nil
+		errMsg := "Failed to get sprint issues: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(issues)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 func DownloadAttachmentsHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -317,12 +346,15 @@ func GetLinkTypesHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	if err != nil {
 		return mcp.NewToolResultError("Jira client error: " + err.Error()), nil
 	}
-	linkTypes, resp, err := client.Issue.Link.Type.Gets(ctx)
+	_, resp, err := client.Issue.Link.Type.Gets(ctx)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to get link types: " + err.Error()), nil
+		errMsg := "Failed to get link types: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(linkTypes)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 func CreateIssueHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -369,12 +401,15 @@ func CreateIssueHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 		cfields = &models.CustomFields{Fields: []map[string]any{add}}
 	}
 
-	issue, resp, err := client.Issue.Create(ctx, payload, cfields)
+	_, resp, err := client.Issue.Create(ctx, payload, cfields)
 	if err != nil || resp == nil || (resp.StatusCode != 201 && resp.StatusCode != 200) {
-		return mcp.NewToolResultError("Failed to create issue: " + err.Error()), nil
+		errMsg := "Failed to create issue: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(issue)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 func BatchCreateIssuesHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -399,7 +434,11 @@ func LinkToEpicHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	}
 	resp, err := client.Epic.Move(ctx, epicKey, []string{issueKey})
 	if err != nil || resp == nil || resp.StatusCode != 204 {
-		return mcp.NewToolResultError("Failed to link to epic: " + err.Error()), nil
+		errMsg := "Failed to link to epic: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
 	return mcp.NewToolResultText("Issue linked to epic successfully"), nil
 }
@@ -430,7 +469,11 @@ func CreateIssueLinkHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	}
 	resp, err := client.Issue.Link.Create(ctx, payload)
 	if err != nil || resp == nil || (resp.StatusCode != 201 && resp.StatusCode != 200) {
-		return mcp.NewToolResultError("Failed to create issue link: " + err.Error()), nil
+		errMsg := "Failed to create issue link: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
 	return mcp.NewToolResultText("Issue link created successfully"), nil
 }
@@ -446,7 +489,11 @@ func RemoveIssueLinkHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	}
 	resp, err := client.Issue.Link.Delete(ctx, linkID)
 	if err != nil || resp == nil || resp.StatusCode != 204 {
-		return mcp.NewToolResultError("Failed to remove issue link: " + err.Error()), nil
+		errMsg := "Failed to remove issue link: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
 	return mcp.NewToolResultText("Issue link removed successfully"), nil
 }
@@ -493,7 +540,11 @@ func TransitionIssueHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	}
 	resp, err := client.Issue.Update(ctx, issueKey, false, payload, cfields, nil)
 	if err != nil || resp == nil || resp.StatusCode != 204 {
-		return mcp.NewToolResultError("Failed to transition issue: " + err.Error()), nil
+		errMsg := "Failed to transition issue: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
 	return mcp.NewToolResultText("Issue transitioned successfully"), nil
 }
@@ -524,12 +575,15 @@ func CreateSprintHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	if goal != "" {
 		payload.Goal = goal
 	}
-	result, resp, err := agileClient.Sprint.Create(ctx, payload)
+	_, resp, err := agileClient.Sprint.Create(ctx, payload)
 	if err != nil || resp == nil || (resp.StatusCode != 201 && resp.StatusCode != 200) {
-		return mcp.NewToolResultError("Failed to create sprint: " + err.Error()), nil
+		errMsg := "Failed to create sprint: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(result)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 func UpdateSprintHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -562,12 +616,15 @@ func UpdateSprintHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	if goal != "" {
 		payload.Goal = goal
 	}
-	result, resp, err := agileClient.Sprint.Update(ctx, sprintID, payload)
+	_, resp, err := agileClient.Sprint.Update(ctx, sprintID, payload)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to update sprint: " + err.Error()), nil
+		errMsg := "Failed to update sprint: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(result)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 // Handler for jira_add_comment
@@ -584,12 +641,15 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	payload := &models.CommentPayloadSchemeV2{
 		Body: comment,
 	}
-	result, resp, err := client.Issue.Comment.Add(ctx, issueKey, payload, nil)
+	_, resp, err := client.Issue.Comment.Add(ctx, issueKey, payload, nil)
 	if err != nil || resp == nil || (resp.StatusCode != 201 && resp.StatusCode != 200) {
-		return mcp.NewToolResultError("Failed to add comment: " + err.Error()), nil
+		errMsg := "Failed to add comment: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(result)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 // Handler for jira_add_worklog
@@ -647,10 +707,18 @@ func AddWorklogHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	var structure any
 	resp, err := client.Call(reqHttp, &structure)
 	if err != nil {
-		return mcp.NewToolResultError("Failed to add worklog: " + err.Error() + resp.Bytes.String()), nil
+		errMsg := "Failed to add worklog: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
 	if resp.StatusCode != 201 && resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to add worklog: " + resp.Bytes.String()), nil
+		errMsg := "Failed to add worklog: "
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
 	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
@@ -687,7 +755,11 @@ func UpdateIssueHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	cfields := &models.CustomFields{Fields: []map[string]any{fields}}
 	resp, err := client.Issue.Update(ctx, issueKey, false, payload, cfields, nil)
 	if err != nil || resp == nil || resp.StatusCode != 204 {
-		return mcp.NewToolResultError("Failed to update issue: " + err.Error()), nil
+		errMsg := "Failed to update issue: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
 	return mcp.NewToolResultText("Issue updated successfully"), nil
 }
@@ -703,7 +775,11 @@ func DeleteIssueHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	}
 	resp, err := client.Issue.Delete(ctx, issueKey, false)
 	if err != nil || resp == nil || resp.StatusCode != 204 {
-		return mcp.NewToolResultError("Failed to delete issue: " + err.Error()), nil
+		errMsg := "Failed to delete issue: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
 	return mcp.NewToolResultText("Issue deleted successfully"), nil
 }

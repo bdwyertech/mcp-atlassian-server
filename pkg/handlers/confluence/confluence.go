@@ -21,7 +21,14 @@ func PingHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRes
 	// Use a simple content search as a health check
 	_, resp, err := client.Search.Content(ctx, "type=page", &models.SearchContentOptions{Limit: 1})
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Confluence ping failed"), nil
+		errMsg := "Confluence ping failed"
+		if err != nil {
+			errMsg += ": " + err.Error()
+		}
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
 	return mcp.NewToolResultText("Confluence OK"), nil
 }
@@ -61,15 +68,15 @@ func SearchHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 	options := &models.SearchContentOptions{
 		Limit: limit,
 	}
-	results, resp, err := client.Search.Content(ctx, cql, options)
+	_, resp, err := client.Search.Content(ctx, cql, options)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Confluence search failed: " + err.Error()), nil
+		errMsg := "Confluence search failed: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, err := json.Marshal(results)
-	if err != nil {
-		return mcp.NewToolResultError("Failed to marshal results: " + err.Error()), nil
-	}
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 // Handler for confluence_get_page
@@ -89,7 +96,11 @@ func GetPageHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 		expands := []string{"body.storage", "version", "metadata.labels"}
 		page, resp, err := client.Content.Get(ctx, pageID, expands, 0)
 		if err != nil || resp == nil || resp.StatusCode != 200 {
-			return mcp.NewToolResultError("Failed to retrieve page by ID: " + err.Error()), nil
+			errMsg := "Failed to retrieve page by ID: " + err.Error()
+			if resp != nil {
+				errMsg += resp.Bytes.String()
+			}
+			return mcp.NewToolResultError(errMsg), nil
 		}
 		if !includeMetadata {
 			if page.Body != nil && page.Body.Storage != nil {
@@ -99,23 +110,30 @@ func GetPageHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 					if err != nil {
 						return mcp.NewToolResultError("Failed to convert HTML to Markdown: " + err.Error()), nil
 					}
-					jsonBytes, _ := json.Marshal(markdown)
-					return mcp.NewToolResultText(string(jsonBytes)), nil
+					return mcp.NewToolResultText(markdown), nil
 				} else {
-					jsonBytes, _ := json.Marshal(page.Body.Storage.Value)
-					return mcp.NewToolResultText(string(jsonBytes)), nil
+					return mcp.NewToolResultText(page.Body.Storage.Value), nil
 				}
 			}
 		}
-		jsonBytes, _ := json.Marshal(page)
-		return mcp.NewToolResultText(string(jsonBytes)), nil
+		return mcp.NewToolResultText(resp.Bytes.String()), nil
 	} else if title != "" && spaceKey != "" {
 		cql := fmt.Sprintf("title=\"%s\" AND space=\"%s\"", title, spaceKey)
 		results, resp, err := client.Search.Content(ctx, cql, &models.SearchContentOptions{Limit: 1})
 		if err != nil || resp == nil || resp.StatusCode != 200 || len(results.Results) == 0 {
-			return mcp.NewToolResultError(fmt.Sprintf("Page with title '%s' not found in space '%s'", title, spaceKey)), nil
+			errMsg := fmt.Sprintf("Page with title '%s' not found in space '%s'", title, spaceKey)
+			if err != nil {
+				errMsg += ": " + err.Error()
+			}
+			if resp != nil {
+				errMsg += resp.Bytes.String()
+			}
+			return mcp.NewToolResultError(errMsg), nil
 		}
-		jsonBytes, _ := json.Marshal(results.Results[0])
+		jsonBytes, err := json.Marshal(results.Results[0])
+		if err != nil {
+			return mcp.NewToolResultError("Failed to marshal results: " + err.Error()), nil
+		}
 		return mcp.NewToolResultText(string(jsonBytes)), nil
 	} else {
 		return mcp.NewToolResultError("Either 'page_id' OR both 'title' and 'space_key' must be provided."), nil
@@ -147,15 +165,22 @@ func GetPageChildrenHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	// }
 	children, resp, err := client.Content.ChildrenDescendant.ChildrenByType(ctx, parentID, "page", 0, expands, start, limit)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to get child pages: " + err.Error()), nil
+		errMsg := "Failed to get child pages: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(map[string]any{
+	jsonBytes, err := json.Marshal(map[string]any{
 		"parent_id":       parentID,
 		"count":           len(children.Results),
 		"limit_requested": limit,
 		"start_requested": start,
 		"results":         children.Results,
 	})
+	if err != nil {
+		return mcp.NewToolResultError("Failed to marshal children results: " + err.Error()), nil
+	}
 	return mcp.NewToolResultText(string(jsonBytes)), nil
 }
 
@@ -167,12 +192,15 @@ func GetCommentsHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 		return mcp.NewToolResultError("Confluence client error: " + err.Error()), nil
 	}
 	// v2 SDK: expands and pagination
-	comments, resp, err := client.Content.Comment.Gets(ctx, pageID, nil, nil, 0, 50)
+	_, resp, err := client.Content.Comment.Gets(ctx, pageID, nil, nil, 0, 50)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to get comments: " + err.Error()), nil
+		errMsg := "Failed to get comments: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(comments)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 // Handler for confluence_get_labels
@@ -182,12 +210,15 @@ func GetLabelsHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if err != nil {
 		return mcp.NewToolResultError("Confluence client error: " + err.Error()), nil
 	}
-	labels, resp, err := client.Content.Label.Gets(ctx, pageID, "", 0, 50)
+	_, resp, err := client.Content.Label.Gets(ctx, pageID, "", 0, 50)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to get labels: " + err.Error()), nil
+		errMsg := "Failed to get labels: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(labels)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 // Handler for confluence_add_label
@@ -199,12 +230,15 @@ func AddLabelHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 		return mcp.NewToolResultError("Confluence client error: " + err.Error()), nil
 	}
 	payload := []*models.ContentLabelPayloadScheme{{Prefix: "global", Name: name}}
-	labels, resp, err := client.Content.Label.Add(ctx, pageID, payload, false)
+	_, resp, err := client.Content.Label.Add(ctx, pageID, payload, false)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to add label: " + err.Error()), nil
+		errMsg := "Failed to add label: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(labels)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 // Handler for confluence_create_page
@@ -231,12 +265,15 @@ func CreatePageHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	if parentID != "" {
 		pagePayload.Ancestors = []*models.ContentScheme{{ID: parentID}}
 	}
-	page, resp, err := client.Content.Create(ctx, pagePayload)
+	_, resp, err := client.Content.Create(ctx, pagePayload)
 	if err != nil || resp == nil || (resp.StatusCode != 200 && resp.StatusCode != 201) {
-		return mcp.NewToolResultError("Failed to create page: " + err.Error()), nil
+		errMsg := "Failed to create page: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(page)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 // Handler for confluence_update_page
@@ -253,7 +290,11 @@ func UpdatePageHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	}
 	current, resp, err := client.Content.Get(ctx, pageID, []string{"version"}, 0)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to get current page: " + err.Error()), nil
+		errMsg := "Failed to get current page: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
 	newVersion := 1
 	if current.Version != nil && current.Version.Number > 0 {
@@ -278,12 +319,15 @@ func UpdatePageHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	if parentID != "" {
 		updatePayload.Ancestors = []*models.ContentScheme{{ID: parentID}}
 	}
-	page, resp, err := client.Content.Update(ctx, pageID, updatePayload)
+	_, resp, err = client.Content.Update(ctx, pageID, updatePayload)
 	if err != nil || resp == nil || resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to update page: " + err.Error()), nil
+		errMsg := "Failed to update page: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
-	jsonBytes, _ := json.Marshal(page)
-	return mcp.NewToolResultText(string(jsonBytes)), nil
+	return mcp.NewToolResultText(resp.Bytes.String()), nil
 }
 
 // Handler for confluence_delete_page
@@ -295,7 +339,11 @@ func DeletePageHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	}
 	resp, err := client.Content.Delete(ctx, pageID, "current")
 	if err != nil || resp == nil || resp.StatusCode != 204 {
-		return mcp.NewToolResultError("Failed to delete page: " + err.Error()), nil
+		errMsg := "Failed to delete page: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
 	return mcp.NewToolResultText(fmt.Sprintf("Page %s deleted successfully", pageID)), nil
 }
@@ -332,10 +380,15 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	var structure any
 	resp, err := client.Call(reqHttp, &structure)
 	if err != nil {
-		return mcp.NewToolResultError("Failed to add comment: " + err.Error() + resp.Bytes.String()), nil
+		errMsg := "Failed to add comment: " + err.Error()
+		if resp != nil {
+			errMsg += resp.Bytes.String()
+		}
+		return mcp.NewToolResultError(errMsg), nil
 	}
 	if resp.StatusCode != 201 && resp.StatusCode != 200 {
-		return mcp.NewToolResultError("Failed to add comment: " + string(resp.Bytes.String())), nil
+		errMsg := "Failed to add comment: " + string(resp.Bytes.String())
+		return mcp.NewToolResultError(errMsg), nil
 	}
 	return mcp.NewToolResultText(string(resp.Bytes.String())), nil
 }
