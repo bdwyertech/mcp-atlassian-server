@@ -1,0 +1,12 @@
+version: '3'
+
+tasks:
+  build:
+    cmds:
+      - go build .
+  mcp-inspector:
+    deps:
+      - build
+    dir: test/
+    cmds:
+      - yarn run mcp-inspector --config config.json --server mcp-atlassian
