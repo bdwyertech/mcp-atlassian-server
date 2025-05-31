@@ -65,11 +65,11 @@ func main() {
 
 func svrCtxFunc(ctx context.Context, r *http.Request) context.Context {
 	for key, value := range r.Header {
-		if key == "JIRA_PERSONAL_TOKEN" {
-			ctx = context.WithValue(ctx, clients.JiraPersonalTokenKey, value)
+		if strings.EqualFold(key, "JIRA_PERSONAL_TOKEN") {
+			ctx = context.WithValue(ctx, clients.JiraPersonalTokenKey, value[0])
 		}
-		if key == "CONFLUENCE_PERSONAL_TOKEN" {
-			ctx = context.WithValue(ctx, clients.ConfluencePersonalTokenKey, value)
+		if strings.EqualFold(key, "CONFLUENCE_PERSONAL_TOKEN") {
+			ctx = context.WithValue(ctx, clients.ConfluencePersonalTokenKey, value[0])
 		}
 	}
 	return ctx
