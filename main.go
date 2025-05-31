@@ -44,6 +44,11 @@ func main() {
 		log.Fatal("Unknown MCP_MODE value")
 	}
 
+	if disabled := os.Getenv("DISABLED_TOOLS"); disabled != "" {
+		disabledTools := strings.Split(disabled, ",")
+		s.DeleteTools(disabledTools...)
+	}
+
 	if os.Getenv("MCP_HTTP") != "" {
 		svr := server.NewStreamableHTTPServer(s, server.WithHTTPContextFunc(svrCtxFunc))
 		log.Info("Listening on :8080/mcp")
