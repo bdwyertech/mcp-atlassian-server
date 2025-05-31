@@ -1,7 +1,6 @@
 package confluence
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -312,8 +311,8 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	commentPayload := &ConfluenceComment{
 		Type: "comment",
 		Container: &Container{
-			Type: "page",
-			ID:   pageID,
+			Type:   "page",
+			ID:     pageID,
 			Status: "current",
 		},
 		Body: &models.BodyScheme{
@@ -323,14 +322,10 @@ func AddCommentHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 			},
 		},
 	}
-	payloadBytes, err := json.Marshal(commentPayload)
-	if err != nil {
-		return mcp.NewToolResultError("Failed to marshal comment payload: " + err.Error()), nil
-	}
 
 	// Build the URL
 	url := fmt.Sprintf("%s://%s/rest/api/content", client.Site.Scheme, client.Site.Host)
-	reqHttp, err := client.NewRequest(ctx, "POST", url, "application/json", bytes.NewReader(payloadBytes))
+	reqHttp, err := client.NewRequest(ctx, "POST", url, "application/json", commentPayload)
 	if err != nil {
 		return mcp.NewToolResultError("Failed to create HTTP request: " + err.Error()), nil
 	}
