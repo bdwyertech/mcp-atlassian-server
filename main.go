@@ -23,6 +23,14 @@ func init() {
 	}
 }
 
+const (
+	envEnabledTools  = "ENABLED_TOOLS"
+	envDisabledTools = "DISABLED_TOOLS"
+	envMCPMode       = "MCP_MODE"
+	envMCPHTTP       = "MCP_HTTP"
+	envMCP_SSE       = "MCP_SSE"
+)
+
 func main() {
 	hooks := &server.Hooks{}
 	s := server.NewMCPServer(
@@ -33,40 +41,7 @@ func main() {
 		server.WithHooks(hooks),
 		server.WithRecovery(),
 		server.WithLogging(),
-		server.WithToolFilter(func(ctx context.Context, tools []mcp.Tool) []mcp.Tool {
-			enabledTools := []mcp.Tool{}
-			enabledEnv := os.Getenv("ENABLED_TOOLS")
-			disabledEnv := os.Getenv("DISABLED_TOOLS")
-			if enabledEnv != "" {
-				enabledSet := map[string]struct{}{}
-				for _, name := range strings.Split(enabledEnv, ",") {
-					enabledSet[strings.TrimSpace(name)] = struct{}{}
-				}
-				for _, t := range tools {
-					if _, ok := enabledSet[t.Name]; ok {
-						enabledTools = append(enabledTools, t)
-					}
-				}
-				return enabledTools
-			} else if disabledEnv != "" {
-				disabledTools := strings.Split(disabledEnv, ",")
-				for _, t := range tools {
-					enabled := true
-					for _, disabled := range disabledTools {
-						if t.Name == strings.TrimSpace(disabled) {
-							enabled = false
-							break
-						}
-					}
-					if enabled {
-						enabledTools = append(enabledTools, t)
-					}
-				}
-				return enabledTools
-			}
-			// If neither is set, return all tools
-			return tools
-		}),
+		server.WithToolFilter(toolFilter),
 	)
 
 	switch strings.ToUpper(os.Getenv("MCP_MODE")) {
@@ -110,4 +85,40 @@ func svrCtxFunc(ctx context.Context, r *http.Request) context.Context {
 		}
 	}
 	return ctx
+}
+
+func toolFilter(ctx context.Context, tools []mcp.Tool) []mcp.Tool {
+	enabledTools := []mcp.Tool{}
+	enabledEnv := os.Getenv(envEnabledTools)
+	disabledEnv := os.Getenv(envDisabledTools)
+
+	if enabledEnv != "" {
+		enabledSet := map[string]struct{}{}
+		for _, name := range strings.Split(enabledEnv, ",") {
+			enabledSet[strings.TrimSpace(name)] = struct{}{}
+		}
+		for _, t := range tools {
+			if _, ok := enabledSet[t.Name]; ok {
+				enabledTools = append(enabledTools, t)
+			}
+		}
+		return enabledTools
+	} else if disabledEnv != "" {
+		disabledTools := strings.Split(disabledEnv, ",")
+		for _, t := range tools {
+			enabled := true
+			for _, disabled := range disabledTools {
+				if t.Name == strings.TrimSpace(disabled) {
+					enabled = false
+					break
+				}
+			}
+			if enabled {
+				enabledTools = append(enabledTools, t)
+			}
+		}
+		return enabledTools
+	}
+	// If neither is set, return all tools
+	return tools
 }
