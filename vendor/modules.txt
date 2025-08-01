@@ -11,8 +11,8 @@ github.com/PuerkitoBio/goquery
 # github.com/andybalholm/cascadia v1.3.3
 ## explicit; go 1.16
 github.com/andybalholm/cascadia
-# github.com/ctreminiom/go-atlassian/v2 v2.4.0
-## explicit; go 1.20
+# github.com/ctreminiom/go-atlassian/v2 v2.6.2
+## explicit; go 1.21
 github.com/ctreminiom/go-atlassian/v2/confluence
 github.com/ctreminiom/go-atlassian/v2/confluence/internal
 github.com/ctreminiom/go-atlassian/v2/jira/agile
@@ -20,6 +20,7 @@ github.com/ctreminiom/go-atlassian/v2/jira/agile/internal
 github.com/ctreminiom/go-atlassian/v2/jira/internal
 github.com/ctreminiom/go-atlassian/v2/jira/v2
 github.com/ctreminiom/go-atlassian/v2/pkg/infra/models
+github.com/ctreminiom/go-atlassian/v2/pkg/infra/oauth2
 github.com/ctreminiom/go-atlassian/v2/service
 github.com/ctreminiom/go-atlassian/v2/service/agile
 github.com/ctreminiom/go-atlassian/v2/service/common
