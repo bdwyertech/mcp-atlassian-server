@@ -18,7 +18,7 @@ import (
 func NewMetadataService(client service.Connector, version string) (*MetadataService, error) {
 
 	if version == "" {
-		return nil, model.ErrNoVersionProvided
+		return nil, fmt.Errorf("jira: %w", model.ErrNoVersionProvided)
 	}
 
 	return &MetadataService{
@@ -54,6 +54,8 @@ func (m *MetadataService) Get(ctx context.Context, issueKeyOrID string, override
 // GET /rest/api/{2-3}/issue/createmeta
 //
 // https://docs.go-atlassian.io/jira-software-cloud/issues/metadata#get-create-issue-metadata
+// Deprecated: This endpoint is deprecated in the Jira API spec.
+// TODO: Cannot change without breaking API compatibility. Consider removing in next major version.
 func (m *MetadataService) Create(ctx context.Context, opts *model.IssueMetadataCreateOptions) (gjson.Result, *model.ResponseScheme, error) {
 	return m.internalClient.Create(ctx, opts)
 }
@@ -115,7 +117,7 @@ type internalMetadataImpl struct {
 func (i *internalMetadataImpl) FetchIssueMappings(ctx context.Context, projectKeyOrID string, startAt, maxResults int) (gjson.Result, *model.ResponseScheme, error) {
 
 	if projectKeyOrID == "" {
-		return gjson.Result{}, nil, model.ErrNoProjectIDOrKey
+		return gjson.Result{}, nil, fmt.Errorf("jira: %w", model.ErrNoProjectIDOrKey)
 	}
 
 	params := url.Values{}
@@ -140,11 +142,11 @@ func (i *internalMetadataImpl) FetchIssueMappings(ctx context.Context, projectKe
 func (i *internalMetadataImpl) FetchFieldMappings(ctx context.Context, projectKeyOrID, issueTypeID string, startAt, maxResults int) (gjson.Result, *model.ResponseScheme, error) {
 
 	if projectKeyOrID == "" {
-		return gjson.Result{}, nil, model.ErrNoProjectIDOrKey
+		return gjson.Result{}, nil, fmt.Errorf("jira: %w", model.ErrNoProjectIDOrKey)
 	}
 
 	if issueTypeID == "" {
-		return gjson.Result{}, nil, model.ErrNoIssueTypeID
+		return gjson.Result{}, nil, fmt.Errorf("jira: %w", model.ErrNoIssueTypeID)
 	}
 
 	params := url.Values{}
@@ -168,7 +170,7 @@ func (i *internalMetadataImpl) FetchFieldMappings(ctx context.Context, projectKe
 func (i *internalMetadataImpl) Get(ctx context.Context, issueKeyOrID string, overrideScreenSecurity, overrideEditableFlag bool) (gjson.Result, *model.ResponseScheme, error) {
 
 	if issueKeyOrID == "" {
-		return gjson.Result{}, nil, model.ErrNoIssueKeyOrID
+		return gjson.Result{}, nil, fmt.Errorf("jira: %w", model.ErrNoIssueKeyOrID)
 	}
 
 	params := url.Values{}

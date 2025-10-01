@@ -35,6 +35,7 @@ func (s *SearchRichTextService) Checks(ctx context.Context, payload *model.Issue
 // https://docs.go-atlassian.io/jira-software-cloud/issues/search#search-for-issues-using-jql-get
 //
 // Deprecated: This endpoint will be removed after May 1, 2025. Use SearchJQL, BulkFetch and ApproximateCount instead.
+// TODO Cannot change without breaking API compatibility. Consider removing in next major version.
 func (s *SearchRichTextService) Get(ctx context.Context, jql string, fields, expands []string, startAt, maxResults int, validate string) (*model.IssueSearchSchemeV2, *model.ResponseScheme, error) {
 	return s.internalClient.Get(ctx, jql, fields, expands, startAt, maxResults, validate)
 }
@@ -46,6 +47,7 @@ func (s *SearchRichTextService) Get(ctx context.Context, jql string, fields, exp
 // https://docs.go-atlassian.io/jira-software-cloud/issues/search#search-for-issues-using-jql-get
 //
 // Deprecated: This endpoint will be removed after May 1, 2025. Use SearchJQL, BulkFetch and ApproximateCount instead.
+// TODO Cannot change without breaking API compatibility. Consider removing in next major version.
 func (s *SearchRichTextService) Post(ctx context.Context, jql string, fields, expands []string, startAt, maxResults int, validate string) (*model.IssueSearchSchemeV2, *model.ResponseScheme, error) {
 	return s.internalClient.Post(ctx, jql, fields, expands, startAt, maxResults, validate)
 }
@@ -97,7 +99,7 @@ func (i *internalSearchRichTextImpl) Checks(ctx context.Context, payload *model.
 func (i *internalSearchRichTextImpl) Get(ctx context.Context, jql string, fields, expands []string, startAt, maxResults int, validate string) (*model.IssueSearchSchemeV2, *model.ResponseScheme, error) {
 
 	if jql == "" {
-		return nil, nil, model.ErrNoJQL
+		return nil, nil, fmt.Errorf("jira: %w", model.ErrNoJQL)
 	}
 
 	params := url.Values{}
@@ -170,19 +172,21 @@ func (i *internalSearchRichTextImpl) Post(ctx context.Context, jql string, field
 // SearchJQL searches issues using the new JQL search endpoint
 //
 // POST /rest/api/2/search/jql
+// TODO: Missing optional parameters from API spec: properties, fieldsByKeys, failFast, reconcileIssues
+// Cannot add without breaking API compatibility. Consider adding in next major version.
 func (i *internalSearchRichTextImpl) SearchJQL(ctx context.Context, jql string, fields, expands []string, maxResults int, nextPageToken string) (*model.IssueSearchJQLSchemeV2, *model.ResponseScheme, error) {
 
 	payload := struct {
 		Jql           string   `json:"jql,omitempty"`
 		MaxResults    int      `json:"maxResults,omitempty"`
 		Fields        []string `json:"fields,omitempty"`
-		Expand        []string `json:"expand,omitempty"`
+		Expand        string   `json:"expand,omitempty"`
 		NextPageToken string   `json:"nextPageToken,omitempty"`
 	}{
 		Jql:           jql,
 		MaxResults:    maxResults,
 		Fields:        fields,
-		Expand:        expands,
+		Expand:        strings.Join(expands, ","),
 		NextPageToken: nextPageToken,
 	}
 
