@@ -55,6 +55,15 @@ func (c *CommentADFService) Add(ctx context.Context, issueKeyOrID string, payloa
 	return c.internalClient.Add(ctx, issueKeyOrID, payload, expand)
 }
 
+// Update updates a comment.
+//
+// PUT /rest/api/{2-3}/issue/{issueKeyOrID}/comment/{commentID}
+//
+// https://docs.go-atlassian.io/jira-software-cloud/issues/comments#update-comment
+func (c *CommentADFService) Update(ctx context.Context, issueKeyOrID, commentID string, payload *model.CommentPayloadScheme, expand []string) (*model.IssueCommentScheme, *model.ResponseScheme, error) {
+	return c.internalClient.Update(ctx, issueKeyOrID, commentID, payload, expand)
+}
+
 type internalAdfCommentImpl struct {
 	c       service.Connector
 	version string
@@ -63,11 +72,11 @@ type internalAdfCommentImpl struct {
 func (i *internalAdfCommentImpl) Delete(ctx context.Context, issueKeyOrID, commentID string) (*model.ResponseScheme, error) {
 
 	if issueKeyOrID == "" {
-		return nil, model.ErrNoIssueKeyOrID
+		return nil, fmt.Errorf("jira: %w", model.ErrNoIssueKeyOrID)
 	}
 
 	if commentID == "" {
-		return nil, model.ErrNoCommentID
+		return nil, fmt.Errorf("jira: %w", model.ErrNoCommentID)
 	}
 
 	endpoint := fmt.Sprintf("rest/api/%v/issue/%v/comment/%v", i.version, issueKeyOrID, commentID)
@@ -83,7 +92,7 @@ func (i *internalAdfCommentImpl) Delete(ctx context.Context, issueKeyOrID, comme
 func (i *internalAdfCommentImpl) Gets(ctx context.Context, issueKeyOrID, orderBy string, expand []string, startAt, maxResults int) (*model.IssueCommentPageScheme, *model.ResponseScheme, error) {
 
 	if issueKeyOrID == "" {
-		return nil, nil, model.ErrNoIssueKeyOrID
+		return nil, nil, fmt.Errorf("jira: %w", model.ErrNoIssueKeyOrID)
 	}
 
 	params := url.Values{}
@@ -117,11 +126,11 @@ func (i *internalAdfCommentImpl) Gets(ctx context.Context, issueKeyOrID, orderBy
 func (i *internalAdfCommentImpl) Get(ctx context.Context, issueKeyOrID, commentID string) (*model.IssueCommentScheme, *model.ResponseScheme, error) {
 
 	if issueKeyOrID == "" {
-		return nil, nil, model.ErrNoIssueKeyOrID
+		return nil, nil, fmt.Errorf("jira: %w", model.ErrNoIssueKeyOrID)
 	}
 
 	if commentID == "" {
-		return nil, nil, model.ErrNoCommentID
+		return nil, nil, fmt.Errorf("jira: %w", model.ErrNoCommentID)
 	}
 
 	endpoint := fmt.Sprintf("rest/api/%v/issue/%v/comment/%v", i.version, issueKeyOrID, commentID)
@@ -143,7 +152,7 @@ func (i *internalAdfCommentImpl) Get(ctx context.Context, issueKeyOrID, commentI
 func (i *internalAdfCommentImpl) Add(ctx context.Context, issueKeyOrID string, payload *model.CommentPayloadScheme, expand []string) (*model.IssueCommentScheme, *model.ResponseScheme, error) {
 
 	if issueKeyOrID == "" {
-		return nil, nil, model.ErrNoIssueKeyOrID
+		return nil, nil, fmt.Errorf("jira: %w", model.ErrNoIssueKeyOrID)
 	}
 
 	params := url.Values{}
@@ -159,6 +168,42 @@ func (i *internalAdfCommentImpl) Add(ctx context.Context, issueKeyOrID string, p
 	}
 
 	request, err := i.c.NewRequest(ctx, http.MethodPost, endpoint.String(), "", payload)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	comment := new(model.IssueCommentScheme)
+	response, err := i.c.Call(request, comment)
+	if err != nil {
+		return nil, response, err
+	}
+
+	return comment, response, nil
+}
+
+func (i *internalAdfCommentImpl) Update(ctx context.Context, issueKeyOrID, commentID string, payload *model.CommentPayloadScheme, expand []string) (*model.IssueCommentScheme, *model.ResponseScheme, error) {
+
+	if issueKeyOrID == "" {
+		return nil, nil, fmt.Errorf("jira: %w", model.ErrNoIssueKeyOrID)
+	}
+
+	if commentID == "" {
+		return nil, nil, fmt.Errorf("jira: %w", model.ErrNoCommentID)
+	}
+
+	params := url.Values{}
+	if len(expand) != 0 {
+		params.Add("expand", strings.Join(expand, ","))
+	}
+
+	var endpoint strings.Builder
+	endpoint.WriteString(fmt.Sprintf("rest/api/%v/issue/%v/comment/%v", i.version, issueKeyOrID, commentID))
+
+	if params.Encode() != "" {
+		endpoint.WriteString(fmt.Sprintf("?%v", params.Encode()))
+	}
+
+	request, err := i.c.NewRequest(ctx, http.MethodPut, endpoint.String(), "", payload)
 	if err != nil {
 		return nil, nil, err
 	}
