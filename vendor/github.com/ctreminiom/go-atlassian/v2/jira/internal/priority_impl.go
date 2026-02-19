@@ -14,7 +14,7 @@ import (
 func NewPriorityService(client service.Connector, version string) (*PriorityService, error) {
 
 	if version == "" {
-		return nil, model.ErrNoVersionProvided
+		return nil, fmt.Errorf("jira: %w", model.ErrNoVersionProvided)
 	}
 
 	return &PriorityService{
@@ -33,6 +33,8 @@ type PriorityService struct {
 // GET /rest/api/{2-3}/priority
 //
 // https://docs.go-atlassian.io/jira-software-cloud/issues/priorities#get-priorities
+// Deprecated: This endpoint is deprecated in the Jira API spec.
+// TODO: Cannot change without breaking API compatibility. Consider removing in next major version.
 func (p *PriorityService) Gets(ctx context.Context) ([]*model.PriorityScheme, *model.ResponseScheme, error) {
 	return p.internalClient.Gets(ctx)
 }
@@ -42,6 +44,8 @@ func (p *PriorityService) Gets(ctx context.Context) ([]*model.PriorityScheme, *m
 // GET /rest/api/{2-3}/priority/{priorityID}
 //
 // https://docs.go-atlassian.io/jira-software-cloud/issues/priorities#get-priority
+// Deprecated: This endpoint is deprecated in the Jira API spec.
+// TODO Cannot change without breaking API compatibility. Consider removing in next major version.
 func (p *PriorityService) Get(ctx context.Context, priorityID string) (*model.PriorityScheme, *model.ResponseScheme, error) {
 	return p.internalClient.Get(ctx, priorityID)
 }
@@ -72,7 +76,7 @@ func (i *internalPriorityImpl) Gets(ctx context.Context) ([]*model.PrioritySchem
 func (i *internalPriorityImpl) Get(ctx context.Context, priorityID string) (*model.PriorityScheme, *model.ResponseScheme, error) {
 
 	if priorityID == "" {
-		return nil, nil, model.ErrNoPriorityID
+		return nil, nil, fmt.Errorf("jira: %w", model.ErrNoPriorityID)
 	}
 
 	endpoint := fmt.Sprintf("rest/api/%v/priority/%v", i.version, priorityID)

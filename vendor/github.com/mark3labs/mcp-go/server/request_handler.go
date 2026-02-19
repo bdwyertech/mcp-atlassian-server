@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/mark3labs/mcp-go/mcp"
 )
@@ -71,6 +72,14 @@ func (s *MCPServer) HandleMessage(
 		)
 	}
 
+	// Get request header from ctx
+	h := ctx.Value(requestHeader)
+	headers, ok := h.(http.Header)
+
+	if headers == nil || !ok {
+		headers = make(http.Header)
+	}
+
 	switch baseMessage.Method {
 	case mcp.MethodInitialize:
 		var request mcp.InitializeRequest
@@ -82,6 +91,7 @@ func (s *MCPServer) HandleMessage(
 				err:  &UnparsableMessageError{message: message, err: unmarshalErr, method: baseMessage.Method},
 			}
 		} else {
+			request.Header = headers
 			s.hooks.beforeInitialize(ctx, baseMessage.ID, &request)
 			result, err = s.handleInitialize(ctx, baseMessage.ID, request)
 		}
@@ -101,6 +111,7 @@ func (s *MCPServer) HandleMessage(
 				err:  &UnparsableMessageError{message: message, err: unmarshalErr, method: baseMessage.Method},
 			}
 		} else {
+			request.Header = headers
 			s.hooks.beforePing(ctx, baseMessage.ID, &request)
 			result, err = s.handlePing(ctx, baseMessage.ID, request)
 		}
@@ -126,6 +137,7 @@ func (s *MCPServer) HandleMessage(
 				err:  &UnparsableMessageError{message: message, err: unmarshalErr, method: baseMessage.Method},
 			}
 		} else {
+			request.Header = headers
 			s.hooks.beforeSetLevel(ctx, baseMessage.ID, &request)
 			result, err = s.handleSetLevel(ctx, baseMessage.ID, request)
 		}
@@ -151,6 +163,7 @@ func (s *MCPServer) HandleMessage(
 				err:  &UnparsableMessageError{message: message, err: unmarshalErr, method: baseMessage.Method},
 			}
 		} else {
+			request.Header = headers
 			s.hooks.beforeListResources(ctx, baseMessage.ID, &request)
 			result, err = s.handleListResources(ctx, baseMessage.ID, request)
 		}
@@ -176,6 +189,7 @@ func (s *MCPServer) HandleMessage(
 				err:  &UnparsableMessageError{message: message, err: unmarshalErr, method: baseMessage.Method},
 			}
 		} else {
+			request.Header = headers
 			s.hooks.beforeListResourceTemplates(ctx, baseMessage.ID, &request)
 			result, err = s.handleListResourceTemplates(ctx, baseMessage.ID, request)
 		}
@@ -201,6 +215,7 @@ func (s *MCPServer) HandleMessage(
 				err:  &UnparsableMessageError{message: message, err: unmarshalErr, method: baseMessage.Method},
 			}
 		} else {
+			request.Header = headers
 			s.hooks.beforeReadResource(ctx, baseMessage.ID, &request)
 			result, err = s.handleReadResource(ctx, baseMessage.ID, request)
 		}
@@ -226,6 +241,7 @@ func (s *MCPServer) HandleMessage(
 				err:  &UnparsableMessageError{message: message, err: unmarshalErr, method: baseMessage.Method},
 			}
 		} else {
+			request.Header = headers
 			s.hooks.beforeListPrompts(ctx, baseMessage.ID, &request)
 			result, err = s.handleListPrompts(ctx, baseMessage.ID, request)
 		}
@@ -251,6 +267,7 @@ func (s *MCPServer) HandleMessage(
 				err:  &UnparsableMessageError{message: message, err: unmarshalErr, method: baseMessage.Method},
 			}
 		} else {
+			request.Header = headers
 			s.hooks.beforeGetPrompt(ctx, baseMessage.ID, &request)
 			result, err = s.handleGetPrompt(ctx, baseMessage.ID, request)
 		}
@@ -276,6 +293,7 @@ func (s *MCPServer) HandleMessage(
 				err:  &UnparsableMessageError{message: message, err: unmarshalErr, method: baseMessage.Method},
 			}
 		} else {
+			request.Header = headers
 			s.hooks.beforeListTools(ctx, baseMessage.ID, &request)
 			result, err = s.handleListTools(ctx, baseMessage.ID, request)
 		}
@@ -287,7 +305,7 @@ func (s *MCPServer) HandleMessage(
 		return createResponse(baseMessage.ID, *result)
 	case mcp.MethodToolsCall:
 		var request mcp.CallToolRequest
-		var result *mcp.CallToolResult
+		var result any
 		if s.capabilities.tools == nil {
 			err = &requestError{
 				id:   baseMessage.ID,
@@ -301,6 +319,7 @@ func (s *MCPServer) HandleMessage(
 				err:  &UnparsableMessageError{message: message, err: unmarshalErr, method: baseMessage.Method},
 			}
 		} else {
+			request.Header = headers
 			s.hooks.beforeCallTool(ctx, baseMessage.ID, &request)
 			result, err = s.handleToolCall(ctx, baseMessage.ID, request)
 		}
@@ -309,6 +328,136 @@ func (s *MCPServer) HandleMessage(
 			return err.ToJSONRPCError()
 		}
 		s.hooks.afterCallTool(ctx, baseMessage.ID, &request, result)
+		return createResponse(baseMessage.ID, result)
+	case mcp.MethodTasksGet:
+		var request mcp.GetTaskRequest
+		var result *mcp.GetTaskResult
+		if s.capabilities.tasks == nil {
+			err = &requestError{
+				id:   baseMessage.ID,
+				code: mcp.METHOD_NOT_FOUND,
+				err:  fmt.Errorf("tasks %w", ErrUnsupported),
+			}
+		} else if unmarshalErr := json.Unmarshal(message, &request); unmarshalErr != nil {
+			err = &requestError{
+				id:   baseMessage.ID,
+				code: mcp.INVALID_REQUEST,
+				err:  &UnparsableMessageError{message: message, err: unmarshalErr, method: baseMessage.Method},
+			}
+		} else {
+			request.Header = headers
+			s.hooks.beforeGetTask(ctx, baseMessage.ID, &request)
+			result, err = s.handleGetTask(ctx, baseMessage.ID, request)
+		}
+		if err != nil {
+			s.hooks.onError(ctx, baseMessage.ID, baseMessage.Method, &request, err)
+			return err.ToJSONRPCError()
+		}
+		s.hooks.afterGetTask(ctx, baseMessage.ID, &request, result)
+		return createResponse(baseMessage.ID, *result)
+	case mcp.MethodTasksList:
+		var request mcp.ListTasksRequest
+		var result *mcp.ListTasksResult
+		if s.capabilities.tasks == nil {
+			err = &requestError{
+				id:   baseMessage.ID,
+				code: mcp.METHOD_NOT_FOUND,
+				err:  fmt.Errorf("tasks %w", ErrUnsupported),
+			}
+		} else if unmarshalErr := json.Unmarshal(message, &request); unmarshalErr != nil {
+			err = &requestError{
+				id:   baseMessage.ID,
+				code: mcp.INVALID_REQUEST,
+				err:  &UnparsableMessageError{message: message, err: unmarshalErr, method: baseMessage.Method},
+			}
+		} else {
+			request.Header = headers
+			s.hooks.beforeListTasks(ctx, baseMessage.ID, &request)
+			result, err = s.handleListTasks(ctx, baseMessage.ID, request)
+		}
+		if err != nil {
+			s.hooks.onError(ctx, baseMessage.ID, baseMessage.Method, &request, err)
+			return err.ToJSONRPCError()
+		}
+		s.hooks.afterListTasks(ctx, baseMessage.ID, &request, result)
+		return createResponse(baseMessage.ID, *result)
+	case mcp.MethodTasksResult:
+		var request mcp.TaskResultRequest
+		var result *mcp.TaskResultResult
+		if s.capabilities.tasks == nil {
+			err = &requestError{
+				id:   baseMessage.ID,
+				code: mcp.METHOD_NOT_FOUND,
+				err:  fmt.Errorf("tasks %w", ErrUnsupported),
+			}
+		} else if unmarshalErr := json.Unmarshal(message, &request); unmarshalErr != nil {
+			err = &requestError{
+				id:   baseMessage.ID,
+				code: mcp.INVALID_REQUEST,
+				err:  &UnparsableMessageError{message: message, err: unmarshalErr, method: baseMessage.Method},
+			}
+		} else {
+			request.Header = headers
+			s.hooks.beforeTaskResult(ctx, baseMessage.ID, &request)
+			result, err = s.handleTaskResult(ctx, baseMessage.ID, request)
+		}
+		if err != nil {
+			s.hooks.onError(ctx, baseMessage.ID, baseMessage.Method, &request, err)
+			return err.ToJSONRPCError()
+		}
+		s.hooks.afterTaskResult(ctx, baseMessage.ID, &request, result)
+		return createResponse(baseMessage.ID, *result)
+	case mcp.MethodTasksCancel:
+		var request mcp.CancelTaskRequest
+		var result *mcp.CancelTaskResult
+		if s.capabilities.tasks == nil {
+			err = &requestError{
+				id:   baseMessage.ID,
+				code: mcp.METHOD_NOT_FOUND,
+				err:  fmt.Errorf("tasks %w", ErrUnsupported),
+			}
+		} else if unmarshalErr := json.Unmarshal(message, &request); unmarshalErr != nil {
+			err = &requestError{
+				id:   baseMessage.ID,
+				code: mcp.INVALID_REQUEST,
+				err:  &UnparsableMessageError{message: message, err: unmarshalErr, method: baseMessage.Method},
+			}
+		} else {
+			request.Header = headers
+			s.hooks.beforeCancelTask(ctx, baseMessage.ID, &request)
+			result, err = s.handleCancelTask(ctx, baseMessage.ID, request)
+		}
+		if err != nil {
+			s.hooks.onError(ctx, baseMessage.ID, baseMessage.Method, &request, err)
+			return err.ToJSONRPCError()
+		}
+		s.hooks.afterCancelTask(ctx, baseMessage.ID, &request, result)
+		return createResponse(baseMessage.ID, *result)
+	case mcp.MethodCompletionComplete:
+		var request mcp.CompleteRequest
+		var result *mcp.CompleteResult
+		if s.capabilities.completions == nil {
+			err = &requestError{
+				id:   baseMessage.ID,
+				code: mcp.METHOD_NOT_FOUND,
+				err:  fmt.Errorf("completions %w", ErrUnsupported),
+			}
+		} else if unmarshalErr := json.Unmarshal(message, &request); unmarshalErr != nil {
+			err = &requestError{
+				id:   baseMessage.ID,
+				code: mcp.INVALID_REQUEST,
+				err:  &UnparsableMessageError{message: message, err: unmarshalErr, method: baseMessage.Method},
+			}
+		} else {
+			request.Header = headers
+			s.hooks.beforeComplete(ctx, baseMessage.ID, &request)
+			result, err = s.handleComplete(ctx, baseMessage.ID, request)
+		}
+		if err != nil {
+			s.hooks.onError(ctx, baseMessage.ID, baseMessage.Method, &request, err)
+			return err.ToJSONRPCError()
+		}
+		s.hooks.afterComplete(ctx, baseMessage.ID, &request, result)
 		return createResponse(baseMessage.ID, *result)
 	default:
 		return createErrorResponse(

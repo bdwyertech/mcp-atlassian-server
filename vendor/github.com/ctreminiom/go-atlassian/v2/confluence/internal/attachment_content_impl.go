@@ -67,6 +67,17 @@ func (a *ContentAttachmentService) Create(ctx context.Context, attachmentID, sta
 	return a.internalClient.Create(ctx, attachmentID, status, fileName, file)
 }
 
+// Download returns the contents of an attachment as a reader.
+//
+// The caller is responsible for closing the returned io.ReadCloser.
+//
+// GET /wiki/rest/api/content/{id}/child/attachment/{attachmentId}/download
+//
+// https://docs.go-atlassian.io/confluence-cloud/content/attachments#download-attachment
+func (a *ContentAttachmentService) Download(ctx context.Context, contentID, attachmentID string) (io.ReadCloser, error) {
+	return a.internalClient.Download(ctx, contentID, attachmentID)
+}
+
 type internalContentAttachmentImpl struct {
 	c service.Connector
 }
@@ -74,7 +85,7 @@ type internalContentAttachmentImpl struct {
 func (i *internalContentAttachmentImpl) Gets(ctx context.Context, contentID string, startAt, maxResults int, options *model.GetContentAttachmentsOptionsScheme) (*model.ContentPageScheme, *model.ResponseScheme, error) {
 
 	if contentID == "" {
-		return nil, nil, model.ErrNoContentID
+		return nil, nil, fmt.Errorf("confluence: %w", model.ErrNoContentID)
 	}
 
 	query := url.Values{}
@@ -116,15 +127,15 @@ func (i *internalContentAttachmentImpl) Gets(ctx context.Context, contentID stri
 func (i *internalContentAttachmentImpl) CreateOrUpdate(ctx context.Context, attachmentID, status, fileName string, file io.Reader) (*model.ContentPageScheme, *model.ResponseScheme, error) {
 
 	if attachmentID == "" {
-		return nil, nil, model.ErrNoContentAttachmentID
+		return nil, nil, fmt.Errorf("confluence: %w", model.ErrNoContentAttachmentID)
 	}
 
 	if fileName == "" {
-		return nil, nil, model.ErrNoContentAttachmentName
+		return nil, nil, fmt.Errorf("confluence: %w", model.ErrNoContentAttachmentName)
 	}
 
 	if file == nil {
-		return nil, nil, model.ErrNoContentReader
+		return nil, nil, fmt.Errorf("confluence: %w", model.ErrNoContentReader)
 	}
 
 	var endpoint strings.Builder
@@ -173,15 +184,15 @@ func (i *internalContentAttachmentImpl) CreateOrUpdate(ctx context.Context, atta
 func (i *internalContentAttachmentImpl) Create(ctx context.Context, attachmentID, status, fileName string, file io.Reader) (*model.ContentPageScheme, *model.ResponseScheme, error) {
 
 	if attachmentID == "" {
-		return nil, nil, model.ErrNoContentAttachmentID
+		return nil, nil, fmt.Errorf("confluence: %w", model.ErrNoContentAttachmentID)
 	}
 
 	if fileName == "" {
-		return nil, nil, model.ErrNoContentAttachmentName
+		return nil, nil, fmt.Errorf("confluence: %w", model.ErrNoContentAttachmentName)
 	}
 
 	if file == nil {
-		return nil, nil, model.ErrNoContentReader
+		return nil, nil, fmt.Errorf("confluence: %w", model.ErrNoContentReader)
 	}
 
 	var endpoint strings.Builder
@@ -225,4 +236,34 @@ func (i *internalContentAttachmentImpl) Create(ctx context.Context, attachmentID
 	}
 
 	return page, response, nil
+}
+
+func (i *internalContentAttachmentImpl) Download(ctx context.Context, contentID, attachmentID string) (io.ReadCloser, error) {
+
+	if contentID == "" {
+		return nil, fmt.Errorf("confluence: %w", model.ErrNoContentID)
+	}
+
+	if attachmentID == "" {
+		return nil, fmt.Errorf("confluence: %w", model.ErrNoContentAttachmentID)
+	}
+
+	endpoint := fmt.Sprintf("wiki/rest/api/content/%v/child/attachment/%v/download", contentID, attachmentID)
+
+	request, err := i.c.NewRequest(ctx, http.MethodGet, endpoint, "", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := i.c.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		response.Body.Close()
+		return nil, fmt.Errorf("confluence: unexpected status code %d", response.StatusCode)
+	}
+
+	return response.Body, nil
 }

@@ -199,6 +199,9 @@ func (i *internalRichTextServiceImpl) Create(ctx context.Context, payload *model
 		body = payloadWithFields
 	}
 
+	// TODO: Missing optional updateHistory query parameter from API spec (default: false).
+	// When true, adds the project to the user's Recently viewed project list.
+	// Cannot add without breaking API compatibility. Consider adding in next major version.
 	endpoint := fmt.Sprintf("rest/api/%v/issue", i.version)
 	request, err := i.c.NewRequest(ctx, http.MethodPost, endpoint, "", body)
 	if err != nil {
@@ -217,7 +220,7 @@ func (i *internalRichTextServiceImpl) Create(ctx context.Context, payload *model
 func (i *internalRichTextServiceImpl) Creates(ctx context.Context, payload []*model.IssueBulkSchemeV2) (*model.IssueBulkResponseScheme, *model.ResponseScheme, error) {
 
 	if len(payload) == 0 {
-		return nil, nil, model.ErrNoCreateIssues
+		return nil, nil, fmt.Errorf("jira: %w", model.ErrNoCreateIssues)
 	}
 
 	var issuePayloads []map[string]interface{}
@@ -254,7 +257,7 @@ func (i *internalRichTextServiceImpl) Creates(ctx context.Context, payload []*mo
 func (i *internalRichTextServiceImpl) Get(ctx context.Context, issueKeyOrID string, fields, expand []string) (*model.IssueSchemeV2, *model.ResponseScheme, error) {
 
 	if issueKeyOrID == "" {
-		return nil, nil, model.ErrNoIssueKeyOrID
+		return nil, nil, fmt.Errorf("jira: %w", model.ErrNoIssueKeyOrID)
 	}
 
 	params := url.Values{}
@@ -291,7 +294,7 @@ func (i *internalRichTextServiceImpl) Get(ctx context.Context, issueKeyOrID stri
 func (i *internalRichTextServiceImpl) Update(ctx context.Context, issueKeyOrID string, notify bool, payload *model.IssueSchemeV2, customFields *model.CustomFields, operations *model.UpdateOperations) (*model.ResponseScheme, error) {
 
 	if issueKeyOrID == "" {
-		return nil, model.ErrNoIssueKeyOrID
+		return nil, fmt.Errorf("jira: %w", model.ErrNoIssueKeyOrID)
 	}
 
 	params := url.Values{}
@@ -362,18 +365,18 @@ func (i *internalRichTextServiceImpl) Update(ctx context.Context, issueKeyOrID s
 func (i *internalRichTextServiceImpl) Move(ctx context.Context, issueKeyOrID, transitionID string, options *model.IssueMoveOptionsV2) (*model.ResponseScheme, error) {
 
 	if issueKeyOrID == "" {
-		return nil, model.ErrNoIssueKeyOrID
+		return nil, fmt.Errorf("jira: %w", model.ErrNoIssueKeyOrID)
 	}
 
 	if transitionID == "" {
-		return nil, model.ErrNoTransitionID
+		return nil, fmt.Errorf("jira: %w", model.ErrNoTransitionID)
 	}
 
 	payload := map[string]interface{}{"transition": map[string]interface{}{"id": transitionID}}
 
 	if options != nil {
 		if options.Fields == nil {
-			return nil, model.ErrNoIssueScheme
+			return nil, fmt.Errorf("jira: %w", model.ErrNoIssueScheme)
 		}
 
 		// Merge the customfields and operations

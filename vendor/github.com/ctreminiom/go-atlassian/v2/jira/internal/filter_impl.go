@@ -19,7 +19,7 @@ import (
 func NewFilterService(client service.Connector, version string, share jira.FilterSharingConnector) (*FilterService, error) {
 
 	if version == "" {
-		return nil, model.ErrNoVersionProvided
+		return nil, fmt.Errorf("jira: %w", model.ErrNoVersionProvided)
 	}
 
 	return &FilterService{
@@ -145,7 +145,7 @@ func (i *internalFilterServiceImpl) Favorite(ctx context.Context) ([]*model.Filt
 	}
 
 	var filters []*model.FilterScheme
-	response, err := i.c.Call(request, filters)
+	response, err := i.c.Call(request, &filters)
 	if err != nil {
 		return nil, response, err
 	}
@@ -170,7 +170,7 @@ func (i *internalFilterServiceImpl) My(ctx context.Context, favorites bool, expa
 	}
 
 	var filters []*model.FilterScheme
-	response, err := i.c.Call(request, filters)
+	response, err := i.c.Call(request, &filters)
 	if err != nil {
 		return nil, response, err
 	}
@@ -234,7 +234,7 @@ func (i *internalFilterServiceImpl) Search(ctx context.Context, options *model.F
 func (i *internalFilterServiceImpl) Get(ctx context.Context, filterID int, expand []string) (*model.FilterScheme, *model.ResponseScheme, error) {
 
 	if filterID == 0 {
-		return nil, nil, model.ErrNoFilterID
+		return nil, nil, fmt.Errorf("jira: %w", model.ErrNoFilterID)
 	}
 
 	var endpoint strings.Builder
@@ -266,7 +266,7 @@ func (i *internalFilterServiceImpl) Get(ctx context.Context, filterID int, expan
 func (i *internalFilterServiceImpl) Update(ctx context.Context, filterID int, payload *model.FilterPayloadScheme) (*model.FilterScheme, *model.ResponseScheme, error) {
 
 	if filterID == 0 {
-		return nil, nil, model.ErrNoFilterID
+		return nil, nil, fmt.Errorf("jira: %w", model.ErrNoFilterID)
 	}
 
 	endpoint := fmt.Sprintf("rest/api/%v/filter/%v", i.version, filterID)
@@ -288,7 +288,7 @@ func (i *internalFilterServiceImpl) Update(ctx context.Context, filterID int, pa
 func (i *internalFilterServiceImpl) Delete(ctx context.Context, filterID int) (*model.ResponseScheme, error) {
 
 	if filterID == 0 {
-		return nil, model.ErrNoFilterID
+		return nil, fmt.Errorf("jira: %w", model.ErrNoFilterID)
 	}
 
 	endpoint := fmt.Sprintf("rest/api/%v/filter/%v", i.version, filterID)
@@ -309,11 +309,11 @@ func (i *internalFilterServiceImpl) Delete(ctx context.Context, filterID int) (*
 func (i *internalFilterServiceImpl) Change(ctx context.Context, filterID int, accountID string) (*model.ResponseScheme, error) {
 
 	if filterID == 0 {
-		return nil, model.ErrNoFilterID
+		return nil, fmt.Errorf("jira: %w", model.ErrNoFilterID)
 	}
 
 	if accountID == "" {
-		return nil, model.ErrNoAccountID
+		return nil, fmt.Errorf("jira: %w", model.ErrNoAccountID)
 	}
 
 	endpoint := fmt.Sprintf("rest/api/%v/filter/%v/owner", i.version, filterID)

@@ -1,11 +1,14 @@
 package mcp
 
+import "net/http"
+
 /* Prompts */
 
 // ListPromptsRequest is sent from the client to request a list of prompts and
 // prompt templates the server has.
 type ListPromptsRequest struct {
 	PaginatedRequest
+	Header http.Header `json:"-"`
 }
 
 // ListPromptsResult is the server's response to a prompts/list request from
@@ -20,6 +23,7 @@ type ListPromptsResult struct {
 type GetPromptRequest struct {
 	Request
 	Params GetPromptParams `json:"params"`
+	Header http.Header     `json:"-"`
 }
 
 type GetPromptParams struct {
@@ -43,6 +47,8 @@ type GetPromptResult struct {
 // that requires argument values to be provided when calling prompts/get.
 // If Arguments is nil or empty, this is a static prompt that takes no arguments.
 type Prompt struct {
+	// Meta is a metadata object that is reserved by MCP for storing additional information.
+	Meta *Meta `json:"_meta,omitempty"`
 	// The name of the prompt or prompt template.
 	Name string `json:"name"`
 	// An optional description of what this prompt provides
@@ -50,6 +56,8 @@ type Prompt struct {
 	// A list of arguments to use for templating the prompt.
 	// The presence of arguments indicates this is a template prompt.
 	Arguments []PromptArgument `json:"arguments,omitempty"`
+	// Icons provides visual identifiers for the prompt
+	Icons []Icon `json:"icons,omitempty"`
 }
 
 // GetName returns the name of the prompt.
@@ -127,6 +135,14 @@ func NewPrompt(name string, opts ...PromptOption) Prompt {
 func WithPromptDescription(description string) PromptOption {
 	return func(p *Prompt) {
 		p.Description = description
+	}
+}
+
+// WithPromptIcons adds icons to the Prompt.
+// Icons provide visual identifiers for the prompt.
+func WithPromptIcons(icons ...Icon) PromptOption {
+	return func(p *Prompt) {
+		p.Icons = icons
 	}
 }
 

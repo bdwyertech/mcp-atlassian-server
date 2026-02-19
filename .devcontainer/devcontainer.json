@@ -1,6 +1,6 @@
 {
   "name": "Go MCP Atlassian Server Dev Container",
-  "image": "mcr.microsoft.com/devcontainers/go:1-1.22-bullseye",
+  "image": "mcr.microsoft.com/devcontainers/go:1",
   "features": {},
   "customizations": {
     "vscode": {
@@ -16,11 +16,13 @@
         "go.lintTool": "golangci-lint",
         "editor.formatOnSave": true,
         "editor.codeActionsOnSave": {
-          "source.organizeImports": true
+          "source.organizeImports": "explicit"
         }
       }
     }
   },
-  "forwardPorts": [8080],
+  "forwardPorts": [
+    8080
+  ],
   "postCreateCommand": "go mod tidy"
 }
